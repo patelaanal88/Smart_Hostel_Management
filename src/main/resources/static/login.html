@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | Smart Hostel Management</title>
+    <link rel="stylesheet" href="login-style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+</head>
+<body>
+
+    <div class="container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="icon-box">
+                    <i class='bx bxs-user-circle'></i>
+                </div>
+                <h1>Welcome Back</h1>
+                <p>Login to access your hostel dashboard</p>
+            </div>
+
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="input-group">
+                    <label for="login-id">Registration / Identification Number</label>
+                    <div class="field">
+                        <i class='bx bx-id-card'></i>
+                        <input type="text" id="login-id" placeholder="e.g., ST1234 or AD1234" required>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="login-password">Password</label>
+                    <div class="field">
+                        <i class='bx bx-lock-alt'></i>
+                        <input type="password" id="login-password" placeholder="••••••••" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="login-btn">
+                    Sign In <i class='bx bx-right-arrow-alt'></i>
+                </button>
+
+                <div class="form-footer">
+                    <p>Don't have an account? <a href="index.html">Sign Up here</a></p>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>                          

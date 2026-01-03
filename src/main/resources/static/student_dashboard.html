@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Student Portal | Smart Hostel</title>
+    <link rel="stylesheet" href="dashboard-style.css">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header"><i class='bx bx-hotel'></i>HostelFlow</div>
+        <div class="nav-menu">
+            <a href="#" class="nav-item active"><i class='bx bxs-dashboard'></i> Dashboard</a>
+            <a href="#" class="nav-item"><i class='bx bxs-user-detail'></i> My Details</a>
+            <a href="#" class="nav-item"><i class='bx bxs-bed'></i> Book Room</a>
+            <a href="#" class="nav-item"><i class='bx bxs-credit-card'></i> Fees & Payments</a>
+            <a href="#" class="nav-item"><i class='bx bxs-food-menu'></i> Mess Menu</a>
+            <a href="#" class="nav-item"><i class='bx bxs-contact'></i> Rector Info</a>
+            <a href="#" class="nav-item"><i class='bx bxs-comment-error'></i> Complaints</a>
+            <a href="#" class="nav-item"><i class='bx bxs-plane-take-off'></i> Leave App</a>
+            <a href="#" class="nav-item"><i class='bx bxs-camera'></i> Hostel Events</a>
+        </div>
+        <a href="index.html" class="logout-btn">Logout</a>
+    </div>
+
+    <div class="main-content student-bg">
+        <div class="welcome-section">
+            <h2>Hello, <span id="display-username">Student</span></h2>
+            <p>Welcome to your Smart Hostel Portal.</p>
+        </div>
+    </div>
+
+    <script>
+        // Retrieve username from Session/LocalStorage
+        const user = JSON.parse(localStorage.getItem('currentUser'));
+        if(user) {
+            document.getElementById('display-username').innerText = user.username;
+        }
+    </script>
+</body>
+</html>    

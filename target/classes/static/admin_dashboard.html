@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Panel | Smart Hostel</title>
+    <link rel="stylesheet" href="dashboard-style.css">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+</head>
+<body>
+    <div class="sidebar" style="border-right: 4px solid #3b82f6;">
+        <div class="sidebar-header" style="color: #3b82f6;"><i class='bx bx-shield-quarter'></i>AdminCore</div>
+        <div class="nav-menu">
+            <a href="#" class="nav-item active"><i class='bx bxs-grid-alt'></i> Overview</a>
+            <a href="#" class="nav-item"><i class='bx bxs-door-open'></i> Room Management</a>
+            <a href="#" class="nav-item"><i class='bx bxs-error-circle'></i> Student Complaints</a>
+            <a href="#" class="nav-item"><i class='bx bxs-calendar-check'></i> Leave Requests</a>
+            <a href="#" class="nav-item"><i class='bx bxs-wallet'></i> Fee Verification</a>
+            <a href="#" class="nav-item"><i class='bx bxs-restaurant'></i> Update Menu</a>
+        </div>
+        <a href="index.html" class="logout-btn">Logout</a>
+    </div>
+
+    <div class="main-content admin-bg">
+        <div class="welcome-section">
+            <h2 style="color: #1e293b;">Hello, <span style="color: #3b82f6;" id="display-admin">Admin</span></h2>
+            <p>Manage hostel operations and requests here.</p>
+        </div>
+    </div>
+
+    <script>
+        const user = JSON.parse(localStorage.getItem('currentUser'));
+        if(user) {
+            document.getElementById('display-admin').innerText = user.username;
+        }
+    </script>
+</body>
+</html>             

@@ -1,0 +1,182 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+    scroll-behavior: smooth;
+}
+
+/* Navbar */
+.navbar {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 8%; /* Reduced padding for a sleeker look */
+    background: rgba(0, 0, 0, 0.85); /* Slightly darker for better button contrast */
+    backdrop-filter: blur(10px);
+    z-index: 1000;
+}
+
+.logo { font-size: 24px; font-weight: 700; color: white; }
+.logo span { color: #10b981; }
+
+.nav-links { display: flex; list-style: none; }
+.nav-links li a {
+    color: white;
+    text-decoration: none;
+    margin: 0 20px;
+    font-weight: 500;
+    transition: 0.3s;
+}
+.nav-links li a:hover { color: #10b981; }
+
+/* Auth Button Container - Force Side-by-Side */
+.auth-btn {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+/* Base styles for both navbar buttons */
+.signin-btn, .login-btn {
+    padding: 8px 20px;
+    border-radius: 50px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.3s ease;
+}
+
+/* Sign Up (The Outlined Button) */
+.signin-btn {
+    background: transparent;
+    border: 2px solid #10b981;
+    color: #10b981;
+}
+
+.signin-btn:hover {
+    background: #10b981;
+    color: white;
+}
+
+/* Login (The Solid Green Button) */
+.login-btn {
+    background: #10b981;
+    border: 2px solid #10b981;
+    color: white;
+}
+
+.login-btn:hover {
+    background: #0d9668;
+    border-color: #0d9668;
+    transform: translateY(-2px);
+}
+
+/* Hero Section */
+.hero {
+    height: 100vh;
+    background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)),
+                url('https://archello.s3.eu-central-1.amazonaws.com/images/2021/03/17/envisage-the-mann-school-----whiteflower-hall--girls-hostel--primary-schools-archello.1615984720.5136.jpg');
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: center;
+    padding: 0 8%;
+}
+
+.hero-content { color: white; max-width: 600px; }
+.hero-content h1 { font-size: 50px; margin-bottom: 20px; }
+.hero-content h1 span { color: #10b981; }
+
+.hero-btns { display: flex; gap: 20px; }
+
+.btn-primary {
+    background: #10b981;
+    color: white;
+    padding: 12px 30px;
+    text-decoration: none;
+    border-radius: 5px;
+    font-weight: 600;
+    transition: 0.3s;
+}
+
+.btn-primary:hover { background: #0d9668; }
+
+.btn-secondary {
+    border: 2px solid white;
+    color: white;
+    padding: 12px 30px;
+    text-decoration: none;
+    border-radius: 5px;
+    font-weight: 600;
+    transition: 0.3s;
+}
+
+.btn-secondary:hover {
+    background: white;
+    color: #111827;
+}
+
+/* Info Section */
+.info-section { padding: 80px 8%; background: #fff; }
+.section-title { text-align: center; margin-bottom: 50px; }
+.underline { width: 50px; height: 4px; background: #10b981; margin: 10px auto; }
+
+.services-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 30px;
+}
+
+.service-card {
+    text-align: center;
+    padding: 30px;
+    background: #f9fafb;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+}
+
+.service-card i { font-size: 40px; color: #10b981; margin-bottom: 15px; }
+
+/* Contact Section */
+.contact-section { padding: 80px 8%; background: #f3f4f6; }
+.contact-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 30px;
+}
+
+.contact-info {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+    max-width: 500px;
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+
+.contact-item i { font-size: 30px; color: #10b981; }
+.contact-item h4 { color: #1f2937; }
+.contact-item p { color: #6b7280; }
+
+footer {
+    text-align: center;
+    padding: 20px;
+    background: #111827;
+    color: white;
+    font-size: 14px;
+}        
