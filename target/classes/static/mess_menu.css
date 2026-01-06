@@ -7,53 +7,65 @@
 
 body {
     background: linear-gradient(to right, #e8f5e9, #c8e6c9);
-    min-height: 100vh;
 }
 
 .container {
-    width: 80%;
+    width: 90%;
     margin: 30px auto;
     text-align: center;
 }
 
 h1 {
     color: #1b5e20;
-    margin-bottom: 5px;
 }
 
 .subtitle {
+    margin-bottom: 25px;
     color: #2e7d32;
-    margin-bottom: 30px;
-    font-size: 14px;
 }
 
-.menu-card {
-    background: linear-gradient(to right, #ffffff, #f1f8e9);
+.day-card {
+    background: #ffffff;
     border-left: 6px solid #43a047;
     border-radius: 10px;
     padding: 20px;
-    margin-bottom: 20px;
-    text-align: left;
+    margin-bottom: 25px;
     box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* Basic functionality: hover effect */
-.menu-card:hover {
-    transform: scale(1.02);
-    box-shadow: 0 8px 16px rgba(0,0,0,0.15);
-}
-
-.menu-card h2 {
+.day-card h2 {
     color: #2e7d32;
-    margin-bottom: 10px;
+    margin-bottom: 15px;
 }
 
-.menu-card ul {
-    margin-left: 20px;
+.meal-row {
+    display: flex;
+    gap: 15px;
 }
 
-.menu-card li {
-    margin: 6px 0;
+.meal {
+    flex: 1;
+    background: #f1f8e9;
+    border-radius: 8px;
+    padding: 15px;
+}
+
+.meal h3 {
+    color: #1b5e20;
+    margin-bottom: 8px;
+}
+
+.meal ul {
+    margin-left: 18px;
+}
+
+.meal li {
+    margin: 4px 0;
     color: #33691e;
+}
+
+.note {
+    font-weight: bold;
+    margin-top: 20px;
+    color: #1b5e20;
 }
