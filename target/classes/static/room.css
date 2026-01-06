@@ -1,0 +1,181 @@
+/* RESET */
+* {
+    box-sizing: border-box;
+}
+
+/* PAGE */
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #e0e7ff, #f8fafc);
+    margin: 0;
+}
+
+/* CONTAINER */
+.container {
+    padding: 35px;
+}
+
+h2 {
+    font-size: 28px;
+    margin-bottom: 20px;
+    color: #1e293b;
+}
+
+/* DROPDOWN */
+select {
+    padding: 12px 16px;
+    font-size: 16px;
+    border-radius: 10px;
+    border: none;
+    outline: none;
+    background: white;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+    cursor: pointer;
+}
+
+/* ROOM GRID */
+.room-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 20px;
+}
+
+/* ROOM CARD */
+.room {
+    padding: 25px 0;
+    text-align: center;
+    font-size: 18px;
+    font-weight: 700;
+    border-radius: 18px;
+    cursor: pointer;
+    color: white;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+/* HOVER EFFECT */
+.room::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0.15);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.room:hover::after {
+    opacity: 1;
+}
+
+.room:hover {
+    transform: translateY(-6px) scale(1.03);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.25);
+}
+
+/* ROOM COLORS */
+.room.green {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+}
+
+.room.red {
+    background: linear-gradient(135deg, #ef4444, #b91c1c);
+}
+
+/* MODAL BACKDROP */
+.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.7);
+    backdrop-filter: blur(5px);
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+}
+
+/* MODAL CARD */
+.modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 22px;
+    width: 320px;
+    text-align: center;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.3);
+    animation: pop 0.35s ease;
+}
+
+/* POP ANIMATION */
+@keyframes pop {
+    from {
+        transform: scale(0.85);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* MODAL TITLE */
+.modal-content h3 {
+    margin-bottom: 20px;
+    color: #1e293b;
+    font-size: 22px;
+}
+
+/* BED CONTAINER */
+.bed-container {
+    display: flex;
+    justify-content: center;
+    gap: 18px;
+    margin: 25px 0;
+}
+
+/* BED */
+.bed {
+    width: 60px;
+    height: 60px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform 0.25s, box-shadow 0.25s;
+    color: white;
+}
+
+.bed:hover {
+    transform: scale(1.1);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+}
+
+/* BED STATUS */
+.bed.empty {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+}
+
+.bed.full {
+    background: linear-gradient(135deg, #ef4444, #b91c1c);
+}
+
+/* BUTTON */
+button {
+    padding: 10px 22px;
+    border: none;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(59,130,246,0.5);
+}

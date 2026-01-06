@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Room Management</title>
+    <link rel="stylesheet" href="room.css">
+</head>
+<body>
+
+<div class="container">
+    <h2>Room Management</h2>
+
+    <select id="floorSelect">
+        <option value="">Select Floor</option>
+        <option value="1">Floor 1 – AC – 3 Sharing</option>
+        <option value="2">Floor 2 – AC – 2 Sharing</option>
+        <option value="3">Floor 3 – AC – 3 Sharing</option>
+        <option value="4">Floor 4 – AC – 3 Sharing</option>
+        <option value="5">Floor 5 – Non-AC – 3 Sharing</option>
+    </select>
+
+    <div id="roomGrid" class="room-grid"></div>
+</div>
+
+<!-- Bed Modal -->
+<div id="bedModal" class="modal">
+    <div class="modal-content">
+        <h3 id="modalRoomTitle"></h3>
+        <div id="bedContainer" class="bed-container"></div>
+        <button onclick="closeModal()">Close</button>
+    </div>
+</div>
+
+<script src="room.js"></script>
+</body>
+</html>
