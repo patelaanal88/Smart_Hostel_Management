@@ -3,73 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign Up | Smart Hostel Management</title>
+    <title>Secure Signup | Smart Hostel</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
 </head>
 <body>
-    <div class="login-card">
-        <div class="login-header">
-            <div class="icon-box">
-                <i class='bx bxs-user-plus'></i>
-            </div>
-            <h1>Create Account</h1>
-            <p>Join the smart hostel community</p>
-        </div>
 
-        <div class="role-selector">
-            <input type="radio" id="student-btn" name="role" checked onclick="updateLabels('student')">
-            <label for="student-btn">Student</label>
-            
-            <input type="radio" id="admin-btn" name="role" onclick="updateLabels('admin')">
-            <label for="admin-btn">Admin</label>
-            
-            <div class="role-glider"></div>
-        </div>
-
-        <form id="authForm" onsubmit="handleAuth(event)">
-            <div class="input-group">
-                <label for="username">Full Name</label>
-                <div class="field">
-                    <i class='bx bx-user'></i>
-                    <input type="text" id="username" placeholder="John Doe" required>
-                </div>
-            </div>
-
-            <div class="input-group">
-                <label id="id-label">Registration Number (STxxxx)</label>
-                <div class="field">
-                    <i class='bx bx-id-card'></i>
-                    <input type="text" id="id-field" placeholder="e.g. ST1234" required>
-                </div>
-            </div>
-
-            <div class="input-group">
-                <label for="email">Email Address</label>
-                <div class="field">
-                    <i class='bx bx-envelope'></i>
-                    <input type="email" id="email" placeholder="john@gmail.com" required>
-                </div>
-            </div>
-
-            <div class="input-group">
-                <label for="password">Password</label>
-                <div class="field">
-                    <i class='bx bx-lock-alt'></i>
-                    <input type="password" id="password" placeholder="Min 6 chars" required>
-                </div>
-            </div>
-
-            <button type="submit" class="login-btn">
-                Register Student <i class='bx bx-right-arrow-alt'></i>
-            </button>
-
-            <div style="text-align: center; margin-top: 20px;">
-                <p style="font-size: 14px; color: #64748b;">Already have an account? <a href="login.html" style="color: #10b981; text-decoration: none; font-weight: 600;">Login</a></p>
-            </div>
-        </form>
+<div class="login-card">
+    <div class="login-header">
+        <div class="icon-box"><i class='bx bxs-user-plus'></i></div>
+        <h1>Create Account</h1>
+        <p>All fields are mandatory</p>
     </div>
-    <script src="script.js"></script>
+
+    <div class="role-selector">
+        <input type="radio" name="role" id="student-btn" checked onclick="updateLabels('student')">
+        <label for="student-btn">Student</label>
+
+        <input type="radio" name="role" id="admin-btn" onclick="updateLabels('admin')">
+        <label for="admin-btn">Admin</label>
+        <div class="role-glider"></div>
+    </div>
+
+    <form id="authForm" onsubmit="handleAuth(event)">
+        <div class="input-group">
+            <label id="id-label">Registration Number (STxxxx)</label>
+            <div class="field">
+                <i class='bx bx-id-card'></i>
+                <input type="text" id="id-field" placeholder="e.g. ST1234" required>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label>Username</label>
+            <div class="field">
+                <i class='bx bx-user'></i>
+                <input type="text" id="username" placeholder="Choose a username" required>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label>Email Address</label>
+            <div class="field">
+                <i class='bx bx-envelope'></i>
+                <input type="text" id="email" placeholder="name@gmail.com" required>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label>Password (Min 6 chars)</label>
+            <div class="field">
+                <i class='bx bx-lock-alt'></i>
+                <input type="password" id="password" placeholder="••••••••" required>
+            </div>
+        </div>
+
+        <button type="submit" class="login-btn">Register Student</button>
+    </form>
+</div>
+
+<script src="script.js"></script>
 </body>
 </html>
