@@ -2,35 +2,285 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Room Management</title>
-    <link rel="stylesheet" href="room.css">
+    <title>Admin Dashboard | Smart Hostel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root { --primary: #6366f1; --success: #10b981; --danger: #ef4444; --warning: #f59e0b; --bg: #f8fafc; }
+        body { font-family: 'Poppins', sans-serif; background: var(--bg); padding: 20px; color: #1e293b; }
+        .container { max-width: 1300px; margin: auto; }
+        .card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 25px; }
+
+        /* Controls */
+        .controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 20px; }
+        .styled-input { padding: 10px; border-radius: 8px; border: 1px solid #ddd; font-family: inherit; }
+        .btn { padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; color: white; font-weight: 600; transition: 0.2s; }
+
+        /* Enhanced Room Grid */
+        .room-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 15px; }
+        .room { min-height: 130px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; color: white; cursor: pointer; transition: transform 0.2s; text-align: center; padding: 10px; }
+        .room:hover { transform: translateY(-3px); }
+        .room.green { background: var(--success); }
+        .room.red { background: var(--danger); }
+        .room h2 { margin: 0; font-size: 22px; }
+        .room .info { font-size: 11px; font-weight: 500; margin-top: 5px; opacity: 0.9; line-height: 1.4; }
+        .room .status { font-size: 10px; text-transform: uppercase; margin-top: 8px; background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 10px; }
+
+        /* Request Feed Table */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #fff; }
+        th { text-align: left; background: #f1f5f9; padding: 12px; font-size: 12px; color: #64748b; }
+        td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+
+        /* Modal */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: white; padding: 25px; border-radius: 20px; width: 450px; }
+        .bed-container { display: flex; gap: 12px; justify-content: center; margin: 20px 0; }
+        .bed { width: 55px; height: 55px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; cursor: pointer; }
+        .search-item { padding: 10px; cursor: pointer; border-bottom: 1px solid #eee; }
+        .search-item:hover { background: #f8fafc; }
+    </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Room Management</h2>
+    <div class="card">
+        <h3>Room Administration</h3>
+        <div class="controls">
+            <input type="text" id="newRoomNo" placeholder="Room No" class="styled-input">
+            <input type="number" id="newFloor" placeholder="Floor" class="styled-input" style="width:70px">
+            <select id="newCap" class="styled-input"><option value="2">2 Sharing</option><option value="3">3 Sharing</option></select>
+            <select id="newType" class="styled-input"><option value="AC">AC</option><option value="Non-AC">Non-AC</option></select>
+            <button onclick="addRoom()" class="btn" style="background:var(--primary)">Add Room</button>
+            <button onclick="updateRoomForm()" class="btn" style="background:var(--warning)">Update Details</button>
+            <button onclick="deleteRoomForm()" class="btn" style="background:var(--danger)">Delete Room</button>
+        </div>
 
-    <select id="floorSelect">
-        <option value="">Select Floor</option>
-        <option value="1">Floor 1 – AC – 3 Sharing</option>
-        <option value="2">Floor 2 – AC – 2 Sharing</option>
-        <option value="3">Floor 3 – AC – 3 Sharing</option>
-        <option value="4">Floor 4 – AC – 3 Sharing</option>
-        <option value="5">Floor 5 – Non-AC – 3 Sharing</option>
-    </select>
+        <div style="background: #f1f5f9; padding: 10px; border-radius: 8px; display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+            <label style="font-size: 13px; font-weight: 600;">🔍 View Floor:</label>
+            <select id="floorFilter" class="styled-input" onchange="loadRooms()" style="width: 150px; padding: 5px;">
+                <option value="All">All Floors</option>
+            </select>
+        </div>
 
-    <div id="roomGrid" class="room-grid"></div>
-</div>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+        <div id="roomGrid" class="room-grid"></div>
+    </div>
 
-<!-- Bed Modal -->
-<div id="bedModal" class="modal">
-    <div class="modal-content">
-        <h3 id="modalRoomTitle"></h3>
-        <div id="bedContainer" class="bed-container"></div>
-        <button onclick="closeModal()">Close</button>
+    <div class="card">
+        <h3>Pending Room Change Requests</h3>
+        <table>
+            <thead><tr><th>Student</th><th>Reg No</th><th>Current Room</th><th>Pref 1</th><th>Pref 2</th><th>Actions</th></tr></thead>
+            <tbody id="requestFeed"></tbody>
+        </table>
     </div>
 </div>
 
-<script src="room.js"></script>
+<div id="bedModal" class="modal">
+    <div class="modal-content">
+        <h3 id="mTitle" style="margin-top:0"></h3>
+        <div id="bedContainer" class="bed-container"></div>
+        <div id="assignArea" style="display:none; border-top: 1px solid #eee; padding-top: 15px;">
+            <p style="font-size: 13px; font-weight: 600;">Assign Bed <span id="selBedLabel"></span>:</p>
+            <input type="text" id="stuSearch" placeholder="Search student by name or ID..." onkeyup="searchStudents()" class="styled-input" style="width:100%; box-sizing: border-box;">
+            <div id="results" style="max-height:120px; overflow-y:auto; border:1px solid #eee; margin-top:5px; border-radius:8px;"></div>
+            <button onclick="finishAssign()" class="btn" style="background:var(--success); width:100%; margin-top:10px">Confirm Assignment</button>
+        </div>
+        <button onclick="closeModal()" style="width:100%; margin-top:15px; background:none; border:none; color:#64748b; cursor:pointer;">Close Window</button>
+    </div>
+</div>
+
+<script>
+    const API_R = "http://localhost:8080/api/rooms";
+    const API_S = "http://localhost:8080/api/students";
+    let curRoom = null, selBedIdx = null, allStudents = [], occupiedRegs = [];
+
+    async function init() {
+        loadRooms();
+        loadRequests();
+    }
+
+    async function loadRooms() {
+        const rooms = await (await fetch(`${API_R}/all`)).json();
+        const grid = document.getElementById("roomGrid"); grid.innerHTML = "";
+        occupiedRegs = [];
+
+        // DYNAMIC FLOOR FILTER UPDATE
+        const filterDropdown = document.getElementById("floorFilter");
+        const currentFilter = filterDropdown.value;
+        const uniqueFloors = [...new Set(rooms.map(r => r.floor))].sort((a, b) => a - b);
+
+        filterDropdown.innerHTML = '<option value="All">All Floors</option>';
+        uniqueFloors.forEach(f => {
+            const opt = document.createElement("option");
+            opt.value = f;
+            opt.innerText = `Floor ${f}`;
+            if(f.toString() === currentFilter) opt.selected = true;
+            filterDropdown.appendChild(opt);
+        });
+
+        const filteredRooms = currentFilter === "All" ? rooms : rooms.filter(r => r.floor.toString() === currentFilter);
+
+        filteredRooms.forEach(r => {
+            const occList = r.assignedStudents.split(",").map(s => s.trim()).filter(s => s !== "");
+            occList.forEach(s => occupiedRegs.push(s));
+
+            const isFull = occList.length >= r.capacity;
+            const statusLabel = isFull ? "OCCUPIED" : "AVAILABLE";
+
+            const div = document.createElement("div");
+            div.className = `room ${isFull ? 'red' : 'green'}`;
+            div.innerHTML = `
+                <h2>${r.roomNumber}</h2>
+                <div class="info">
+                    ${r.type} | ${r.capacity} Sharing<br>
+                    Floor: ${r.floor}
+                </div>
+                <div class="status">${occList.length}/${r.capacity} - ${statusLabel}</div>
+            `;
+            div.onclick = () => openRoomModal(r);
+            grid.appendChild(div);
+        });
+    }
+
+    async function updateRoomForm() {
+        const { value: rNo } = await Swal.fire({
+            title: 'Identify Room',
+            input: 'text',
+            inputLabel: 'Enter Room Number to update',
+            showCancelButton: true
+        });
+
+        if(rNo) {
+            const rooms = await (await fetch(`${API_R}/all`)).json();
+            const room = rooms.find(r => r.roomNumber === rNo);
+            if(!room) return Swal.fire("Error", "Room not found", "error");
+
+            const { value: formValues } = await Swal.fire({
+                title: `Update Room ${rNo}`,
+                html:
+                    `<label style="font-size:12px">Floor</label><input id="upFloor" type="number" class="swal2-input" value="${room.floor}">` +
+                    `<label style="font-size:12px">Sharing</label><select id="upCap" class="swal2-input"><option value="2" ${room.capacity==2?'selected':''}>2 Sharing</option><option value="3" ${room.capacity==3?'selected':''}>3 Sharing</option></select>` +
+                    `<label style="font-size:12px">Type</label><select id="upType" class="swal2-input"><option value="AC" ${room.type=='AC'?'selected':''}>AC</option><option value="Non-AC" ${room.type=='Non-AC'?'selected':''}>Non-AC</option></select>`,
+                focusConfirm: false,
+                preConfirm: () => {
+                    return {
+                        roomNumber: rNo,
+                        floor: document.getElementById('upFloor').value,
+                        capacity: document.getElementById('upCap').value,
+                        type: document.getElementById('upType').value
+                    }
+                }
+            });
+
+            if (formValues) {
+                await fetch(`${API_R}/update`, {
+                    method:'PUT',
+                    headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify(formValues)
+                });
+                Swal.fire("Success", "Room updated", "success");
+                init();
+            }
+        }
+    }
+
+    async function loadRequests() {
+        const reqs = await (await fetch(`${API_S}/requests/all`)).json();
+        const feed = document.getElementById("requestFeed"); feed.innerHTML = "";
+        reqs.filter(r => r.status === 'PENDING').forEach(r => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `<td>${r.fullName}</td><td>${r.registrationNumber}</td><td>${r.currentRoom}</td><td>${r.preference1}</td><td>${r.preference2}</td>
+                <td><button class="btn" style="background:var(--success); padding:5px 10px; font-size:11px;" onclick="procReq(${r.id},'ACCEPT')">Accept</button>
+                <button class="btn" style="background:var(--danger); padding:5px 10px; font-size:11px;" onclick="procReq(${r.id},'REJECT')">Reject</button></td>`;
+            feed.appendChild(tr);
+        });
+    }
+
+    async function procReq(id, act) {
+        await fetch(`${API_S}/requests/process`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id, action:act}) });
+        Swal.fire("Processed", "Request Feed Updated", "success"); init();
+    }
+
+    function openRoomModal(r) {
+        curRoom = r; document.getElementById("mTitle").innerText = `Room ${r.roomNumber} (${r.type})`;
+        const container = document.getElementById("bedContainer"); container.innerHTML = "";
+        const occupants = r.assignedStudents.split(",");
+        occupants.forEach((s, i) => {
+            const sid = s.trim();
+            const b = document.createElement("div");
+            b.className = `bed`;
+            b.style.background = sid ? 'var(--danger)' : 'var(--success)';
+            b.innerText = String.fromCharCode(65+i);
+            b.onclick = () => sid ? handleOccupied(i, sid) : startAssign(i);
+            container.appendChild(b);
+        });
+        document.getElementById("bedModal").style.display = "flex";
+    }
+
+    async function handleOccupied(idx, sid) {
+        const { isConfirmed } = await Swal.fire({
+            title: 'Bed Occupied',
+            text: `Assigned to: ${sid}. Do you want to update it?`,
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Vacate Bed',
+            confirmButtonColor: '#ef4444'
+        });
+        if(isConfirmed) {
+            await fetch(`${API_R}/vacateBed`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({roomNumber:curRoom.roomNumber, bedIndex:idx}) });
+            await fetch(`${API_S}/assignRoom`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({registrationNumber:sid, assignedRoom:"", assignedBed:""}) });
+            closeModal(); init();
+        }
+    }
+
+    async function startAssign(idx) {
+        selBedIdx = idx;
+        document.getElementById("selBedLabel").innerText = String.fromCharCode(65+idx);
+        document.getElementById("assignArea").style.display = "block";
+        if(!allStudents.length) allStudents = await (await fetch(`${API_S}/all`)).json();
+    }
+
+    function searchStudents() {
+        const q = document.getElementById("stuSearch").value.toLowerCase();
+        const resDiv = document.getElementById("results"); resDiv.innerHTML = "";
+        allStudents.filter(s => (s.fullName.toLowerCase().includes(q) || s.registrationNumber.includes(q)) && !occupiedRegs.includes(s.registrationNumber))
+            .forEach(s => {
+                const d = document.createElement("div"); d.className="search-item"; d.innerText = `${s.fullName} (${s.registrationNumber})`;
+                d.onclick = () => { document.getElementById("stuSearch").value = s.registrationNumber; resDiv.innerHTML=""; };
+                resDiv.appendChild(d);
+            });
+    }
+
+    async function finishAssign() {
+        const reg = document.getElementById("stuSearch").value;
+        if(!reg) return;
+        await fetch(`${API_R}/assignBed`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({roomNumber:curRoom.roomNumber, registrationNumber:reg, bedIndex:selBedIdx}) });
+        await fetch(`${API_S}/assignRoom`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({registrationNumber:reg, assignedRoom:curRoom.roomNumber, assignedBed:String.fromCharCode(65+selBedIdx)}) });
+        closeModal(); init();
+    }
+
+    async function addRoom() {
+        const room = {
+            roomNumber: document.getElementById("newRoomNo").value,
+            floor: document.getElementById("newFloor").value,
+            capacity: document.getElementById("newCap").value,
+            type: document.getElementById("newType").value
+        };
+        const res = await fetch(`${API_R}/add`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(room) });
+        if(res.ok) init(); else Swal.fire("Error", "Duplicate Room Number", "error");
+    }
+
+    async function deleteRoomForm() {
+        const { value: rNo } = await Swal.fire({ title: 'Delete Room', input: 'text', inputLabel: 'Confirm Room Number' });
+        if(rNo) {
+            const res = await fetch(`${API_R}/delete/${rNo}`, { method:'DELETE' });
+            if(!res.ok) Swal.fire("Denied", await res.text(), "warning");
+            init();
+        }
+    }
+
+    function closeModal() { document.getElementById("bedModal").style.display = "none"; document.getElementById("assignArea").style.display="none"; }
+    window.onload = init;
+</script>
 </body>
 </html>
