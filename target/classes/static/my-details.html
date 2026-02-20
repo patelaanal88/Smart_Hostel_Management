@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Details | HostelFlow</title>
+    <link rel="stylesheet" href="my-details-style.css">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="full-page-container">
+    <div class="header-content">
+        <div class="title-flex">
+            <i class='bx bxs-user-detail'></i>
+            <h2>Student Profile Details</h2>
+        </div>
+        <p>Welcome! Currently updating records for ID: <span id="st-id-display">ST0000</span></p>
+    </div>
+
+    <form id="studentDetailsForm">
+        <div class="form-section-header">
+            <span><i class='bx bxs-user'></i> Personal Information</span>
+        </div>
+        <div class="input-row">
+            <div class="input-group">
+                <label>Full Name</label>
+                <input type="text" id="fullName" placeholder="Enter your full name" required>
+            </div>
+            <div class="input-group">
+                <label>Aadhar Card Number</label>
+                <input type="text" id="aadhar" placeholder="12-digit Aadhar Number" maxlength="12" required>
+            </div>
+            <div class="input-group">
+                <label>Student Phone</label>
+                <input type="tel" id="studentPhone" placeholder="10-digit Mobile" maxlength="10" required>
+            </div>
+        </div>
+
+        <div class="form-section-header">
+            <span><i class='bx bxs-group'></i> Family Details</span>
+        </div>
+        <div class="input-row">
+            <div class="input-group">
+                <label>Father's Name</label>
+                <input type="text" id="fatherName" required>
+            </div>
+            <div class="input-group">
+                <label>Mother's Name</label>
+                <input type="text" id="motherName" required>
+            </div>
+            <div class="input-group">
+                <label>Parent's Phone</label>
+                <input type="tel" id="parentPhone" placeholder="Emergency Contact" maxlength="10" required>
+            </div>
+        </div>
+
+        <div class="form-section-header">
+            <span><i class='bx bxs-graduation'></i> Academic Details</span>
+        </div>
+        <div class="input-row">
+            <div class="input-group">
+                <label>College Name</label>
+                <input type="text" id="collegeName" required>
+            </div>
+            <div class="input-group">
+                <label>Branch / Department</label>
+                <input type="text" id="branch" placeholder="e.g. IT, Computer" required>
+            </div>
+            <div class="input-group">
+                <label>Permanent City</label>
+                <input type="text" id="city" required>
+            </div>
+        </div>
+
+        <div class="form-section-header">
+            <span><i class='bx bxs-map-pin'></i> Residential & Emergency Contact</span>
+        </div>
+        <div class="input-row">
+            <div class="input-group">
+                <label>Local Relative (Near Hostel)</label>
+                <input type="text" id="relative" placeholder="Name & Phone Number" required>
+            </div>
+            <div class="input-group full-width">
+                <label>Full Permanent Address</label>
+                <textarea id="address" rows="3" placeholder="Street, Area, Pincode..." required></textarea>
+            </div>
+        </div>
+
+        <div class="action-area">
+            <button type="submit" class="submit-btn">
+                <i class='bx bx-check-double'></i> Submit My Details
+            </button>
+        </div>
+    </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    // Fetch User ID from localStorage
+    const user = JSON.parse(localStorage.getItem('currentUser'));
+    if(user) {
+        document.getElementById('st-id-display').innerText = user.registrationNumber;
+    } else {
+        window.location.href = 'login.html';
+    }
+
+    document.getElementById('studentDetailsForm').onsubmit = async (e) => {
+        e.preventDefault();
+
+        const studentData = {
+            registrationNumber: user.registrationNumber,
+            fullName: document.getElementById('fullName').value,
+            aadharNumber: document.getElementById('aadhar').value,
+            studentPhone: document.getElementById('studentPhone').value,
+            email: user.email,
+            fatherName: document.getElementById('fatherName').value,
+            motherName: document.getElementById('motherName').value,
+            parentPhone: document.getElementById('parentPhone').value,
+            collegeName: document.getElementById('collegeName').value,
+            branch: document.getElementById('branch').value,
+            city: document.getElementById('city').value,
+            relativeContact: document.getElementById('relative').value,
+            permanentAddress: document.getElementById('address').value
+        };
+
+        try {
+            const response = await fetch('http://localhost:8080/api/students/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(studentData)
+            });
+
+            if (response.ok) {
+                // --- UPDATED LOGIC: SHOW MESSAGE THEN REDIRECT ---
+                Swal.fire({
+                    title: 'Success!',
+                    text: 'Profile record created in MySQL Database.',
+                    icon: 'success',
+                    confirmButtonColor: '#10b981',
+                    timer: 2000, // Optional: Auto close after 2 seconds
+                    timerProgressBar: true
+                }).then((result) => {
+                    // This block executes after clicking "OK" OR after the timer ends
+                    window.location.href = 'student_dashboard.html';
+                });
+
+            } else {
+                const errorMsg = await response.text();
+                throw new Error(errorMsg || 'Failed to save data');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            Swal.fire({
+                title: 'Database Error',
+                text: 'Connection to server failed or data rejected.',
+                icon: 'error',
+                confirmButtonColor: '#ef4444'
+            });
+        }
+    };
+</script>
+
+</body>
+</html>

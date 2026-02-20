@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Student Fee Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body { font-family: 'Poppins', sans-serif; background: #f4f7fe; padding: 40px; }
+        .card { max-width: 500px; margin: auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .fee-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .fee-table td { padding: 12px 0; border-bottom: 1px dashed #eee; color: #444; }
+        .total-row { font-size: 1.3rem; font-weight: bold; color: #6366f1; border-bottom: none !important; }
+        #upiQR { width: 220px; margin: 20px auto; display: block; padding: 10px; border: 1px solid #ddd; border-radius: 10px; }
+        .utr-input { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ddd; border-radius: 8px; text-align: center; box-sizing: border-box; }
+        .btn { width: 100%; padding: 14px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; transition: 0.3s; }
+        .btn-pay { background: #6366f1; color: white; }
+        .btn-submit { background: #10b981; color: white; }
+        .status-msg { text-align: center; margin-bottom: 15px; font-weight: 600; padding: 10px; border-radius: 8px; }
+        .verified { background: #dcfce7; color: #166534; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div id="statusBadge"></div>
+    <h3 style="text-align: center; color: #333; margin-top: 0;">Hostel Fee Breakdown</h3>
+    <p id="roomCategoryDisplay" style="text-align: center; font-size: 14px; font-weight: 600; margin-top: -10px;"></p>
+
+    <table class="fee-table">
+        <tbody id="feeDetails"></tbody>
+        <tr class="total-row">
+            <td>Total Amount</td>
+            <td id="totalAmount">₹0</td>
+        </tr>
+    </table>
+
+    <div id="paymentArea" style="display:none; text-align:center; animation: fadeIn 0.5s;">
+        <p style="color: #666; font-size: 14px;">Scan with GPay/PhonePe/Paytm</p>
+        <img id="upiQR" src="" alt="UPI QR Code">
+        <p>Paying to: <b id="displayUpi"></b></p>
+
+        <label style="font-size: 12px; font-weight: bold;">ENTER 12-DIGIT TRANSACTION ID (UTR)</label>
+        <input type="text" id="utr" class="utr-input" placeholder="0000 0000 0000">
+
+        <button class="btn btn-submit" onclick="submitPayment()">Submit Transaction Proof</button>
+    </div>
+
+    <button id="payBtn" class="btn btn-pay" onclick="togglePayment()">Proceed to Pay</button>
+
+    <button id="downloadBtn" class="btn" style="display:none; background: #1e293b; color: white; margin-top: 15px;" onclick="generatePDF()">
+        📄 Download Verified Receipt
+    </button>
+</div>
+
+<script>
+    let feeData = null;
+    const user = JSON.parse(localStorage.getItem('currentUser'));
+
+    async function initializePage() {
+        if (!user) return Swal.fire("Error", "User session not found", "error");
+
+        try {
+            // Fetch fee structure based on registration number
+            const res = await fetch(`http://localhost:8080/api/fees/structure/${user.registrationNumber}`);
+
+            if (res.ok) {
+                feeData = await res.json();
+
+                // DYNAMIC ROOM TYPE DETECTION
+                const isAC = feeData.roomType === "AC";
+                const categoryLabel = isAC ? "(AC Room Charges)" : "(Non-AC Room Charges)";
+                const labelColor = isAC ? "#ef4444" : "#6366f1";
+
+                document.getElementById('roomCategoryDisplay').innerText = categoryLabel;
+                document.getElementById('roomCategoryDisplay').style.color = labelColor;
+
+                const total = feeData.rent + feeData.mess + feeData.electricity + feeData.maintenance;
+
+                document.getElementById('feeDetails').innerHTML = `
+                    <tr><td>Room Rent</td><td>₹${feeData.rent}</td></tr>
+                    <tr><td>Mess Charges</td><td>₹${feeData.mess}</td></tr>
+                    <tr><td>Electricity</td><td>₹${feeData.electricity}</td></tr>
+                    <tr><td>Maintenance</td><td>₹${feeData.maintenance}</td></tr>
+                `;
+                document.getElementById('totalAmount').innerText = "₹" + total;
+
+                checkVerificationStatus();
+            } else {
+                const msg = await res.text();
+                Swal.fire("Note", msg, "info");
+            }
+        } catch (err) {
+            console.error("Fetch error:", err);
+            Swal.fire("Error", "Could not connect to the server", "error");
+        }
+    }
+
+    async function checkVerificationStatus() {
+        try {
+            const res = await fetch(`http://localhost:8080/api/fees/student-status/${user.registrationNumber}`);
+            const payment = await res.json();
+
+            if (payment && payment.status === 'SUCCESSFUL') {
+                document.getElementById('statusBadge').innerHTML = `<div class="status-msg verified">Payment Verified ✓</div>`;
+                document.getElementById('payBtn').style.display = 'none';
+                document.getElementById('paymentArea').style.display = 'none';
+                document.getElementById('downloadBtn').style.display = 'block';
+            }
+        } catch (err) {
+            console.error("Status check error:", err);
+        }
+    }
+
+    function togglePayment() {
+        if (!feeData) return Swal.fire("Error", "Fee data not loaded", "error");
+        document.getElementById('paymentArea').style.display = 'block';
+        document.getElementById('payBtn').style.display = 'none';
+
+        const total = feeData.rent + feeData.mess + feeData.electricity + feeData.maintenance;
+        const upiURI = `upi://pay?pa=${feeData.adminUpiId}&pn=HostelAdmin&am=${total}&cu=INR&tn=FeePayment`;
+
+        document.getElementById('upiQR').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiURI)}`;
+        document.getElementById('displayUpi').innerText = feeData.adminUpiId;
+    }
+
+    async function submitPayment() {
+        const utr = document.getElementById('utr').value;
+        if(utr.trim().length < 10) return Swal.fire("Error", "Invalid Transaction ID", "error");
+
+        const total = feeData.rent + feeData.mess + feeData.electricity + feeData.maintenance;
+        const studentName = user.fullName || user.name || "Student";
+
+        const paymentData = {
+            registrationNumber: user.registrationNumber,
+            studentName: studentName,
+            transactionId: utr,
+            amount: total,
+            roomType: feeData.roomType,
+            status: "PENDING"
+        };
+
+        try {
+            const res = await fetch('http://localhost:8080/api/fees/submit-payment', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(paymentData)
+            });
+            if(res.ok) {
+                Swal.fire("Success", "Payment submitted for verification", "success").then(() => location.reload());
+            }
+        } catch (err) {
+            Swal.fire("Error", "Submission failed", "error");
+        }
+    }
+
+    async function generatePDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        try {
+            const response = await fetch(`http://localhost:8080/api/students/${user.registrationNumber}`);
+            const dbUser = await response.json();
+
+            const sName = dbUser.fullName || "N/A";
+            const regNo = dbUser.registrationNumber || "N/A";
+            const roomNo = dbUser.assignedRoom || "Not Assigned";
+            const roomType = (roomNo.toUpperCase().includes("AC")) ? "AC Room" : "Non-AC Room";
+
+            const rent = feeData.rent || 0;
+            const mess = feeData.mess || 0;
+            const electricity = feeData.electricity || 0;
+            const maintenance = feeData.maintenance || 0;
+            const total = rent + mess + electricity + maintenance;
+
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(22);
+            doc.setTextColor(99, 102, 241);
+            doc.text("SMART HOSTEL - FEE RECEIPT", 105, 25, { align: 'center' });
+            doc.line(20, 30, 190, 30);
+
+            doc.setFontSize(12);
+            doc.setTextColor(0, 0, 0);
+            doc.text("STUDENT INFORMATION", 20, 45);
+
+            doc.setFont("helvetica", "normal");
+            doc.text(`Student Name: ${sName}`, 20, 55);
+            doc.text(`Registration No: ${regNo}`, 20, 65);
+            doc.text(`Room Number: ${roomNo}`, 20, 75);
+            doc.text(`Room Category: ${roomType}`, 20, 85);
+
+            doc.setFont("helvetica", "bold");
+            doc.text("FEE BREAKDOWN", 20, 105);
+            doc.line(20, 107, 190, 107);
+
+            doc.setFont("helvetica", "normal");
+            const yStart = 117;
+            doc.text("Room Rent", 25, yStart);      doc.text(`INR ${rent}`, 150, yStart);
+            doc.text("Mess Charges", 25, yStart+10);  doc.text(`INR ${mess}`, 150, yStart+10);
+            doc.text("Electricity", 25, yStart+20);   doc.text(`INR ${electricity}`, 150, yStart+20);
+            doc.text("Maintenance", 25, yStart+30);   doc.text(`INR ${maintenance}`, 150, yStart+30);
+
+            doc.line(20, yStart+35, 190, yStart+35);
+            doc.setFont("helvetica", "bold");
+            doc.text("TOTAL AMOUNT PAID:", 25, yStart+45);
+            doc.text(`INR ${total}`, 150, yStart+45);
+
+            doc.setFontSize(14);
+            doc.setTextColor(16, 101, 52);
+            doc.text("STATUS: PAYMENT VERIFIED BY ADMIN", 105, 185, { align: 'center' });
+
+            doc.setFontSize(10);
+            doc.setTextColor(100, 100, 100);
+            doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 210);
+
+            doc.save(`${regNo}_Fee_Receipt.pdf`);
+        } catch (error) {
+            Swal.fire("Error", "Could not generate receipt", "error");
+        }
+    }
+    window.onload = initializePage;
+</script>
+</body>
+</html>

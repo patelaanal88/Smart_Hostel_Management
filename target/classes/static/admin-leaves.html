@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin | Leave Control Center</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body { font-family: 'Poppins', sans-serif; background: #f1f5f9; padding: 30px; margin: 0; }
+
+        /* TABS */
+        .tab-bar { display: flex; gap: 15px; margin-bottom: 25px; border-bottom: 2px solid #e2e8f0; }
+        .tab-btn { padding: 12px 24px; border: none; background: transparent; cursor: pointer; font-weight: 600; color: #64748b; }
+        .tab-btn.active { color: #6366f1; border-bottom: 3px solid #6366f1; }
+
+        .admin-card {
+            background: white; padding: 25px; border-radius: 12px; margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-left: 8px solid #6366f1;
+        }
+
+        .student-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
+        .name-tag { background: #6366f1; color: white; padding: 5px 15px; border-radius: 6px; font-weight: bold; }
+
+        .parent-info-box {
+            background: #fdf2f2; border: 1px solid #fecaca; padding: 15px;
+            border-radius: 10px; margin: 15px 0; display: flex; gap: 20px;
+        }
+        .info-label { font-size: 12px; color: #991b1b; text-transform: uppercase; font-weight: bold; display: block; }
+        .info-value { font-size: 16px; color: #1e293b; font-weight: 600; }
+
+        .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; font-size: 14px; }
+        .btn-approve { background: #10b981; color: white; border: none; padding: 12px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+        .btn-reject { background: #ef4444; color: white; border: none; padding: 12px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+        .status-pill { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; float: right; }
+    </style>
+</head>
+<body>
+
+<div class="tab-bar">
+    <button id="tabActive" class="tab-btn active" onclick="changeView('active')">Incoming Requests</button>
+    <button id="tabArchive" class="tab-btn" onclick="changeView('archive')">Archived Logs</button>
+</div>
+
+<div id="leaveList"></div>
+
+<script>
+    let view = 'active';
+
+    function changeView(v) {
+        view = v;
+        document.getElementById('tabActive').classList.toggle('active', v === 'active');
+        document.getElementById('tabArchive').classList.toggle('active', v === 'archive');
+        fetchLeaves();
+    }
+
+    async function fetchLeaves() {
+        const url = view === 'active' ? '/api/leaves/admin/all' : '/api/leaves/admin/archived';
+        const res = await fetch(`http://localhost:8080${url}`);
+        const data = await res.json();
+        const container = document.getElementById("leaveList");
+        container.innerHTML = "";
+
+        data.reverse().forEach(l => {
+            const card = document.createElement("div");
+            card.className = "admin-card";
+            card.innerHTML = `
+                <div class="student-header">
+                    <div>
+                        <span class="name-tag">👤 ${l.studentName}</span>
+                        <span style="margin-left: 10px; font-size: 13px; color: #64748b;">Room: ${l.roomNumber}</span>
+                    </div>
+                    <span class="status-pill" style="background:${l.status === 'PENDING' ? '#fef3c7' : '#dcfce7'}">${l.status}</span>
+                </div>
+
+                <div class="parent-info-box">
+                    <div>
+                        <span class="info-label">Father's Name (from Details)</span>
+                        <span class="info-value">${l.fatherName || 'Not Provided'}</span>
+                    </div>
+                    <div>
+                        <span class="info-label">Parent Contact</span>
+                        <a href="tel:${l.parentNumber}" class="info-value" style="color:#6366f1; text-decoration:none;">📞 ${l.parentNumber}</a>
+                    </div>
+                </div>
+
+                <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid #e2e8f0;">
+                    <strong>Reason:</strong> ${l.reason}
+                </div>
+
+                <div class="details-grid">
+                    <div><strong>From:</strong> ${l.fromDate}</div>
+                    <div><strong>To:</strong> ${l.toDate}</div>
+                    <div><strong>Out Time:</strong> ${l.departureTime}</div>
+                    <div><strong>In Time:</strong> ${l.arrivalTime}</div>
+                </div>
+
+                ${view === 'active' ? `
+                    <div style="display:flex; gap:10px; margin-top:20px; border-top:1px solid #eee; padding-top:15px;">
+                        <button class="btn-approve" onclick="updateStatus(${l.id}, 'APPROVED')">Approve</button>
+                        <select id="rej-msg-${l.id}" style="padding:10px; border-radius:8px; flex:1;">
+                            <option value="Parent denied permission">Parent denied</option>
+                            <option value="Fake details provided">Fake details</option>
+                        </select>
+                        <button class="btn-reject" onclick="reject(${l.id})">Reject</button>
+                    </div>
+                ` : `<div style="color:#64748b; font-size:12px; margin-top:10px;">Archived Record: Decision Finalized.</div>`}
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    async function reject(id) {
+        const msg = document.getElementById(`rej-msg-${id}`).value;
+        updateStatus(id, 'REJECTED', msg);
+    }
+
+    async function updateStatus(id, status, msg = '') {
+        const res = await fetch('http://localhost:8080/api/leaves/process', {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ id: id, status: status, rejectReason: msg })
+        });
+        if(res.ok) {
+            Swal.fire({ title: "Updated", icon: "success", timer: 1500, showConfirmButton: false });
+            fetchLeaves();
+        }
+    }
+
+    window.onload = fetchLeaves;
+</script>
+</body>
+</html>

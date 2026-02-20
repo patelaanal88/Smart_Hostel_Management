@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin | Staff Management</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Poppins', sans-serif; background: #f1f5f9; padding: 40px; }
+        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 30px; }
+        .grid-inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        input, select { padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; }
+        .btn-save { background: #6366f1; color: white; border: none; padding: 12px 30px; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        th { background: #f8fafc; color: #64748b; font-size: 13px; text-transform: uppercase; }
+        .btn-edit { background: #f59e0b; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; margin-right: 5px; }
+        .btn-del { background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2 id="formTitle">Add New Staff Member</h2>
+    <input type="hidden" id="staffId">
+    <div class="grid-inputs">
+        <input type="text" id="name" placeholder="Full Name">
+        <select id="role">
+            <option>Rector</option><option>Warden</option><option>Watchman</option><option>Supervisor</option>
+        </select>
+        <select id="duty">
+            <option>Day</option><option>Night</option>
+        </select>
+        <input type="text" id="mobile" placeholder="10-digit Mobile" maxlength="10">
+        <input type="text" id="work" placeholder="Work Description (e.g. Gate Monitoring)" style="grid-column: span 2;">
+    </div>
+    <button onclick="saveStaff()" class="btn-save">Confirm Staff Details</button>
+</div>
+
+<div class="card">
+    <h3>Active Staff List</h3>
+    <table>
+        <thead>
+            <tr><th>Name</th><th>Role</th><th>Duty</th><th>Mobile</th><th>Actions</th></tr>
+        </thead>
+        <tbody id="staffTableBody"></tbody>
+    </table>
+</div>
+
+<script>
+    const API = "http://localhost:8080/api/staff";
+
+    async function loadTable() {
+        const res = await fetch(`${API}/all`);
+        const staff = await res.json();
+        const body = document.getElementById("staffTableBody");
+        body.innerHTML = "";
+        staff.forEach(s => {
+            body.innerHTML += `
+                <tr>
+                    <td><strong>${s.name}</strong></td>
+                    <td>${s.role}</td>
+                    <td><span style="color:${s.dutyType==='Day'?'#f59e0b':'#6366f1'}">${s.dutyType}</span></td>
+                    <td>${s.mobile}</td>
+                    <td>
+                        <button class="btn-edit" onclick='fillEditForm(${JSON.stringify(s)})'>Edit</button>
+                        <button class="btn-del" onclick="deleteStaff(${s.id})">Delete</button>
+                    </td>
+                </tr>`;
+        });
+    }
+
+    async function saveStaff() {
+        const id = document.getElementById("staffId").value;
+        const mobile = document.getElementById("mobile").value;
+        
+        if(mobile.length !== 10 || isNaN(mobile)) {
+            return Swal.fire("Invalid Mobile", "Please enter a correct 10-digit number", "error");
+        }
+
+        const staffData = {
+            id: id ? id : null,
+            name: document.getElementById("name").value,
+            role: document.getElementById("role").value,
+            dutyType: document.getElementById("duty").value,
+            work: document.getElementById("work").value,
+            mobile: mobile
+        };
+
+        const response = await fetch(id ? `${API}/update` : `${API}/add`, {
+            method: id ? 'PUT' : 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(staffData)
+        });
+
+        if(response.ok) {
+            Swal.fire("Success", "Staff record saved", "success");
+            resetForm();
+            loadTable();
+        }
+    }
+
+    function fillEditForm(s) {
+        document.getElementById("formTitle").innerText = "Edit Staff Information";
+        document.getElementById("staffId").value = s.id;
+        document.getElementById("name").value = s.name;
+        document.getElementById("role").value = s.role;
+        document.getElementById("duty").value = s.dutyType;
+        document.getElementById("work").value = s.work;
+        document.getElementById("mobile").value = s.mobile;
+        window.scrollTo(0,0);
+    }
+
+    async function deleteStaff(id) {
+        const result = await Swal.fire({ title: 'Are you sure?', text: "This will remove the staff info for students.", icon: 'warning', showCancelButton: true });
+        if(result.isConfirmed) {
+            await fetch(`${API}/delete/${id}`, { method: 'DELETE' });
+            loadTable();
+        }
+    }
+
+    function resetForm() {
+        document.getElementById("formTitle").innerText = "Add New Staff Member";
+        document.getElementById("staffId").value = "";
+        document.getElementById("name").value = "";
+        document.getElementById("mobile").value = "";
+        document.getElementById("work").value = "";
+    }
+
+    window.onload = loadTable;
+</script>
+</body>
+</html>

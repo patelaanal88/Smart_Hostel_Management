@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Overview | HostelFlow</title>
+    <link rel="stylesheet" href="overview.css">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+</head>
+<body>
+<div class="admin-container">
+    <div class="top-bar">
+        <div class="stat-card">
+            <div class="stat-icon"><i class='bx bxs-group'></i></div>
+            <div class="stat-info">
+                <h3 id="total-count">0</h3>
+                <p>Total Registered Students</p>
+            </div>
+        </div>
+
+        <div class="search-box">
+            <i class='bx bx-search'></i>
+            <input type="text" id="searchInput" placeholder="Search by student name..." onkeyup="filterStudents()">
+        </div>
+    </div>
+
+    <header class="section-header">
+        <h2><i class='bx bx-list-ul'></i> Student Admission Records</h2>
+    </header>
+
+    <div class="records-grid" id="records-container">
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    let allStudents = [];
+
+    async function fetchAllStudents() {
+        try {
+            const res = await fetch('http://localhost:8080/api/students/all');
+            allStudents = await res.json();
+
+            // Update Total Count
+            document.getElementById('total-count').innerText = allStudents.length;
+
+            renderTable(allStudents);
+        } catch (err) {
+            console.error("Failed to load records", err);
+        }
+    }
+
+    function renderTable(data) {
+        const container = document.getElementById('records-container');
+        if (data.length === 0) {
+            container.innerHTML = `<p class="no-data">No matching student records found.</p>`;
+            return;
+        }
+
+        container.innerHTML = data.map(st => `
+            <div class="student-card">
+                <div class="card-header">
+                    <h3>${st.fullName}</h3>
+                    <span class="reg-badge">${st.registrationNumber}</span>
+                </div>
+                <div class="card-body">
+                    <p><strong><i class='bx bxs-graduation'></i></strong> ${st.collegeName}</p>
+                    <p><strong><i class='bx bxs-phone'></i></strong> ${st.studentPhone}</p>
+                    <p><strong><i class='bx bxs-map'></i></strong> ${st.city}</p>
+                </div>
+                <button class="view-btn" onclick="showDetails(${JSON.stringify(st).replace(/"/g, '&quot;')})">
+                    Full Details
+                </button>
+            </div>
+        `).join('');
+    }
+
+    // Real-time Search Logic
+    function filterStudents() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const filteredData = allStudents.filter(st =>
+            st.fullName.toLowerCase().includes(searchTerm)
+        );
+        renderTable(filteredData);
+    }
+
+    function showDetails(st) {
+        Swal.fire({
+            title: `<strong>Profile: ${st.fullName}</strong>`,
+            html: `
+                <div style="text-align: left; font-size: 14px; line-height: 1.6;">
+                    <hr>
+                    <p><b>Aadhar:</b> ${st.aadharNumber}</p>
+                    <p><b>Parent Name:</b> ${st.fatherName}</p>
+                    <p><b>Parent Phone:</b> ${st.parentPhone}</p>
+                    <p><b>Branch:</b> ${st.branch}</p>
+                    <p><b>Permanent Address:</b> ${st.permanentAddress}</p>
+                </div>
+            `,
+            confirmButtonColor: '#3b82f6'
+        });
+    }
+
+    window.onload = fetchAllStudents;
+</script>
+</body>
+</html>

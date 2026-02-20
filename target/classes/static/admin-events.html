@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin | Event Control Center</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root { --primary: #4f46e5; --bg: #f8fafc; --card: #ffffff; }
+        body { font-family: 'Poppins', sans-serif; background: var(--bg); padding: 30px; margin: 0; }
+        .container { max-width: 1200px; margin: 0 auto; }
+
+        .section-box { background: var(--card); padding: 25px; border-radius: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 40px; }
+        .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+        textarea { grid-column: span 3; padding: 12px; border-radius: 8px; border: 1px solid #ddd; height: 60px; }
+
+        .tab-container { display: flex; gap: 20px; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; }
+        .tab { padding: 10px 20px; cursor: pointer; font-weight: 600; color: #64748b; }
+        .tab.active { color: var(--primary); border-bottom: 3px solid var(--primary); }
+
+        .events-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 25px; }
+        .event-card { background: white; border-radius: 15px; border: 1px solid #e2e8f0; overflow: hidden; }
+        .gallery-preview { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; padding: 10px; background: #f1f5f9; }
+        .thumb { width: 100%; height: 50px; object-fit: cover; border-radius: 4px; }
+
+        .btn-post { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+        .btn-up { background: #e0e7ff; color: #4338ca; border: none; padding: 8px 15px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+        .btn-arc { background: #fee2e2; color: #991b1b; border: none; padding: 8px 15px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="section-box">
+        <h3 style="margin-top:0">✨ Post New Event</h3>
+        <div class="form-grid">
+            <input type="text" id="title" placeholder="Event Title" style="padding:10px; border-radius:8px; border:1px solid #ddd;">
+            <input type="date" id="date" style="padding:10px; border-radius:8px; border:1px solid #ddd;">
+            <select id="cat" style="padding:10px; border-radius:8px; border:1px solid #ddd;">
+                <option value="Celebration">Celebration</option>
+                <option value="Sports">Sports</option>
+                <option value="Notice">Notice</option>
+            </select>
+            <textarea id="desc" placeholder="Event details..."></textarea>
+            <button class="btn-post" onclick="saveEvent()">Publish Event</button>
+        </div>
+    </div>
+
+    <div class="tab-container">
+        <div id="tabActive" class="tab active" onclick="switchTab(false)">Current / Future Events</div>
+        <div id="tabArchive" class="tab" onclick="switchTab(true)">Archived Records</div>
+    </div>
+
+    <div id="eventList" class="events-grid"></div>
+</div>
+
+<script>
+    let showArchived = false;
+
+    function switchTab(isArchived) {
+        showArchived = isArchived;
+        document.getElementById('tabActive').classList.toggle('active', !isArchived);
+        document.getElementById('tabArchive').classList.toggle('active', isArchived);
+        loadEvents();
+    }
+
+    async function saveEvent() {
+        const data = { title: document.getElementById('title').value, description: document.getElementById('desc').value,
+            eventDate: document.getElementById('date').value, category: document.getElementById('cat').value, images: [] };
+        await fetch('http://localhost:8080/api/events/admin/add', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+        Swal.fire("Success", "Event Live!", "success").then(() => loadEvents());
+    }
+
+    async function loadEvents() {
+        const url = showArchived ? 'http://localhost:8080/api/events/archived' : 'http://localhost:8080/api/events/active';
+        const res = await fetch(url);
+        const events = await res.json();
+        const list = document.getElementById('eventList');
+
+        list.innerHTML = events.map(e => `
+            <div class="event-card">
+                <div style="padding:20px;">
+                    <span style="float:right; font-size:12px; color:#166534; font-weight:600;">👥 ${e.registrationCount}</span>
+                    <h4 style="margin:0">${e.title}</h4>
+                    <small style="color:#64748b">${e.eventDate}</small>
+                </div>
+                <div class="gallery-preview">
+                    ${e.images.slice(0, 4).map(img => `<img src="${img}" class="thumb">`).join('')}
+                </div>
+                <div style="padding:15px; display:flex; gap:10px; background:#fafafa;">
+                    <button class="btn-up" onclick="pickPhotos(${e.id})">📸 Photos</button>
+                    ${!showArchived ? `<button class="btn-arc" onclick="archive(${e.id})">Archive</button>` : `<span style="color:#94a3b8; font-size:12px; padding:8px;">Archived</span>`}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function pickPhotos(id) {
+        const input = document.createElement('input'); input.type = 'file'; input.multiple = true; input.accept = 'image/*';
+        input.onchange = async (e) => {
+            const files = Array.from(e.target.files);
+            const base64Array = await Promise.all(files.map(file => new Promise(res => {
+                const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(file);
+            })));
+            await fetch(`http://localhost:8080/api/events/admin/update-images/${id}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(base64Array) });
+            loadEvents();
+        };
+        input.click();
+    }
+
+    async function archive(id) {
+        await fetch(`http://localhost:8080/api/events/admin/archive/${id}`, { method: 'PUT' });
+        loadEvents();
+    }
+
+    window.onload = loadEvents;
+</script>
+</body>
+</html>
