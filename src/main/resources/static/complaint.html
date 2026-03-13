@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Complaints | Student Side</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body { font-family: 'Poppins', sans-serif; background: #f8fafc; padding: 20px; }
+        .card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); max-width: 800px; margin: auto; }
+        input, select, textarea { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #ddd; font-family: inherit; }
+        .btn-primary { background: #6366f1; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: 600; }
+        .history-card { margin-top: 20px; border-top: 2px solid #eee; padding-top: 20px; }
+        .comp-item { background: #fff; border: 1px solid #e2e8f0; padding: 15px; border-radius: 10px; margin-bottom: 10px; position: relative; }
+        .badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; position: absolute; top: 15px; right: 15px; }
+        .pending { background: #fee2e2; color: #991b1b; }
+        .resolved { background: #dcfce7; color: #166534; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h3>New Complaint</h3>
+    <p style="font-size: 13px; color: #64748b;">Logged in as: <strong id="displayInfo">Loading...</strong></p>
+
+    <select id="compType">
+        <option value="Food Related">Food Related</option>
+        <option value="Room Appliances">Room Appliances</option>
+        <option value="Plumbing/Washroom">Plumbing / Washroom</option>
+        <option value="Cleaning/Housekeeping">Cleaning / Housekeeping</option>
+        <option value="Internet/WiFi">Internet / WiFi</option>
+    </select>
+
+    <textarea id="compDesc" rows="3" placeholder="Explain your issue..."></textarea>
+    <input type="file" id="compImg" accept="image/*" onchange="encodeImage()">
+    <button class="btn-primary" onclick="submitComplaint()">Submit Complaint</button>
+
+    <div class="history-card">
+        <h4>My Complaint Status</h4>
+        <div id="myComplaints"></div>
+    </div>
+</div>
+
+<script>
+    // FIX: Pulling correct fields from localStorage
+    const user = JSON.parse(localStorage.getItem('currentUser'));
+
+    // Attempting to find the name field (handles 'fullName' or 'name' based on your DB)
+    const dbName = user.fullName || user.name || "Student";
+    const dbReg = user.registrationNumber || user.regNo;
+
+    // Update the "Logged in as" text
+    document.getElementById("displayInfo").innerText = `${dbName} (${dbReg})`;
+
+    let imgBase64 = "";
+
+    function encodeImage() {
+        const file = document.getElementById('compImg').files[0];
+        const reader = new FileReader();
+        reader.onloadend = () => { imgBase64 = reader.result; };
+        if (file) reader.readAsDataURL(file);
+    }
+
+    async function submitComplaint() {
+        const desc = document.getElementById('compDesc').value;
+        if(!desc) {
+            return Swal.fire("Error", "Please explain your issue", "error");
+        }
+
+        const body = {
+            fullName: dbName, // Sending the real name from DB
+            registrationNumber: dbReg,
+            type: document.getElementById('compType').value,
+            description: desc,
+            imageData: imgBase64
+        };
+
+        const res = await fetch('http://localhost:8080/api/complaints/submit', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(body)
+        });
+
+        if(res.ok) {
+            Swal.fire("Success", "Complaint sent to Admin", "success");
+            document.getElementById('compDesc').value = "";
+            loadMyComplaints();
+        }
+    }
+
+    async function loadMyComplaints() {
+        const res = await fetch(`http://localhost:8080/api/complaints/student/${dbReg}`);
+        const data = await res.json();
+        const container = document.getElementById("myComplaints");
+
+        container.innerHTML = data.reverse().map(c => `
+            <div class="comp-item">
+                <span class="badge ${c.status.toLowerCase()}">${c.status}</span>
+                <strong>${c.fullName}</strong> <p style="font-size:13px; margin:5px 0; color:#475569;">${c.description}</p>
+                <div style="font-size:11px; color:#6366f1">
+                    <strong>Admin Response:</strong> ${c.resolutionTime || "Awaiting Review"}
+                </div>
+            </div>
+        `).join('');
+    }
+    window.onload = loadMyComplaints;
+</script>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Student Portal | Events</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root { --primary: #4f46e5; --bg: #f1f5f9; }
+        body { font-family: 'Poppins', sans-serif; background: var(--bg); padding: 30px; margin: 0; }
+        .container { max-width: 1200px; margin: 0 auto; }
+
+        .tab-nav { display: flex; justify-content: center; gap: 30px; margin-bottom: 40px; }
+        .tab { font-size: 1.1rem; font-weight: 600; cursor: pointer; color: #94a3b8; padding-bottom: 5px; transition: 0.3s; }
+        .tab.active { color: var(--primary); border-bottom: 3px solid var(--primary); }
+
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 30px; }
+        .event-card { background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+
+        .card-gallery { display: flex; overflow-x: auto; gap: 10px; padding: 15px; background: #f8fafc; }
+        .gallery-item { flex: 0 0 140px; height: 90px; position: relative; }
+        .gallery-img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+        .dl-icon { position: absolute; bottom: 5px; right: 5px; background: white; color: var(--primary); padding: 3px; border-radius: 50%; font-size: 12px; text-decoration: none; }
+
+        .content { padding: 20px; }
+        .btn-reg { width: 100%; background: var(--primary); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 600; cursor: pointer; }
+        .disabled-btn { background: #94a3b8 !important; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="tab-nav">
+        <div id="tActive" class="tab active" onclick="loadStudentData(false)">🚀 Upcoming Events</div>
+        <div id="tArchive" class="tab" onclick="loadStudentData(true)">📸 Past Memories</div>
+    </div>
+
+    <div id="eventGrid" class="grid"></div>
+</div>
+
+<script>
+    let currentMode = false;
+
+    async function loadStudentData(isArchived) {
+        currentMode = isArchived;
+        document.getElementById('tActive').classList.toggle('active', !isArchived);
+        document.getElementById('tArchive').classList.toggle('active', isArchived);
+
+        const url = isArchived ? 'http://localhost:8080/api/events/archived' : 'http://localhost:8080/api/events/active';
+        const res = await fetch(url);
+        const events = await res.json();
+        const grid = document.getElementById('eventGrid');
+        const registeredList = JSON.parse(localStorage.getItem('registeredEvents') || "[]");
+
+        grid.innerHTML = events.map(e => {
+            const isReg = registeredList.includes(e.id);
+            return `
+            <div class="event-card">
+                <div class="card-gallery">
+                    ${e.images.length > 0 ? e.images.map((img, i) => `
+                        <div class="gallery-item">
+                            <img src="${img}" class="gallery-img">
+                            <a href="${img}" download="memory-${i}.png" class="dl-icon">📥</a>
+                        </div>
+                    `).join('') : '<div style="padding:20px; color:#94a3b8; font-size:12px;">Photos coming soon!</div>'}
+                </div>
+                <div class="content">
+                    <small style="color:var(--primary); font-weight:600;">${e.eventDate}</small>
+                    <h3 style="margin:5px 0;">${e.title}</h3>
+                    <p style="color:#64748b; font-size:0.85rem; margin-bottom:15px;">${e.description}</p>
+
+                    ${!currentMode ? `
+                        <button id="reg-btn-${e.id}" class="btn-reg ${isReg ? 'disabled-btn' : ''}"
+                                onclick="register(${e.id})" ${isReg ? 'disabled' : ''}>
+                            ${isReg ? '✓ Registered' : 'Count Me In!'}
+                        </button>
+                    ` : `<div style="text-align:center; color:#166534; font-weight:600; font-size:13px;">Event Completed ✅</div>`}
+                </div>
+            </div>
+        `;}).join('');
+    }
+
+    async function register(id) {
+        const res = await fetch(`http://localhost:8080/api/events/register/${id}`, { method: 'PUT' });
+        if(res.ok) {
+            const list = JSON.parse(localStorage.getItem('registeredEvents') || "[]");
+            list.push(id);
+            localStorage.setItem('registeredEvents', JSON.stringify(list));
+            Swal.fire("Registered!", "See you there!", "success").then(() => loadStudentData(false));
+        }
+    }
+
+    window.onload = () => loadStudentData(false);
+</script>
+</body>
+</html>

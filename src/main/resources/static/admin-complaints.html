@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin | Complaint Archives</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body { font-family: 'Poppins', sans-serif; background: #f1f5f9; padding: 30px; }
+        .tab-nav { display: flex; gap: 15px; margin-bottom: 25px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+        .tab-btn { padding: 10px 20px; border: none; background: #e2e8f0; border-radius: 8px; cursor: pointer; font-weight: 600; color: #64748b; }
+        .tab-btn.active { background: #6366f1; color: white; }
+        .admin-card { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; display: flex; gap: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .img-preview { width: 140px; height: 140px; border-radius: 8px; object-fit: cover; cursor: pointer; border: 1px solid #ddd; background: #eee; }
+        .student-info { background: #6366f1; padding: 6px 15px; border-radius: 6px; font-weight: bold; color: white; display: inline-block; }
+        .status-badge { float: right; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; text-transform: uppercase; }
+        .desc-text { font-size: 14px; background: #f8fafc; padding: 15px; border-radius: 8px; margin-top: 10px; }
+        .action-btns { display: flex; gap: 10px; margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px; }
+        .btn-resolve { background: #10b981; color: white; padding: 10px; border-radius: 6px; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+<div class="tab-nav">
+    <button id="btnActive" class="tab-btn active" onclick="loadView('active')">Pending Complaints</button>
+    <button id="btnArchive" class="tab-btn" onclick="loadView('archive')">Resolved Archives</button>
+</div>
+
+<div id="complaintList"></div>
+
+<script>
+    let currentView = 'active';
+
+    function loadView(view) {
+        currentView = view;
+        document.getElementById('btnActive').classList.toggle('active', view === 'active');
+        document.getElementById('btnArchive').classList.toggle('active', view === 'archive');
+        fetchComplaints();
+    }
+
+    async function fetchComplaints() {
+        const url = currentView === 'active' ? '/api/complaints/admin/all' : '/api/complaints/admin/archived';
+        const res = await fetch(`http://localhost:8080${url}`);
+        const data = await res.json();
+        const container = document.getElementById("complaintList");
+        container.innerHTML = "";
+
+        let list = (currentView === 'active') ? data.filter(c => c.status !== 'RESOLVED') : data;
+
+        list.reverse().forEach(c => {
+            const card = document.createElement("div");
+            card.className = "admin-card";
+            card.innerHTML = `
+                <div class="img-area">
+                    <img src="${c.imageData || ''}" class="img-preview" onclick="viewImg('${c.imageData}')" onerror="this.src='https://via.placeholder.com/140?text=No+Image'">
+                </div>
+                <div style="flex:1">
+                    <span class="status-badge" style="background:#eee">${c.status}</span>
+                    <div class="student-info">${c.studentName}</div>
+                    <p><strong>Room:</strong> ${c.roomNumber || 'N/A'} | <strong>Type:</strong> ${c.type}</p>
+                    <p class="desc-text">${c.description}</p>
+                    ${currentView === 'active' ? `
+                        <div class="action-btns">
+                            <select id="time-${c.id}"><option>Under 2 Days</option><option>Under one week</option></select>
+                            <button onclick="respond(${c.id}, 'RESOLVED')" class="btn-resolve">Mark Resolved</button>
+                        </div>
+                    ` : '<p style="color:green; font-weight:bold; margin-top:10px;">✅ Status: Resolved & Logged</p>'}
+                </div>`;
+            container.appendChild(card);
+        });
+    }
+
+    async function respond(id, status) {
+        const time = document.getElementById(`time-${id}`) ? document.getElementById(`time-${id}`).value : "Resolved";
+        await fetch('http://localhost:8080/api/complaints/update-status', {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ id, status, resolutionTime: time })
+        });
+        Swal.fire("Success", "Complaint moved to Archive", "success");
+        fetchComplaints();
+    }
+
+    function viewImg(src) { Swal.fire({ imageUrl: src }); }
+    window.onload = () => loadView('active');
+</script>
+</body>
+</html>

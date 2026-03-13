@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Portal | Leave Application</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --bg: #f8fafc;
+            --text: #1e293b;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+        }
+
+        h3 { margin-top: 0; color: var(--primary); font-size: 24px; }
+        h4 { margin: 20px 0 15px; border-bottom: 2px solid var(--bg); padding-bottom: 5px; }
+
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 5px; color: #64748b; }
+
+        textarea {
+            width: 100%;
+            height: 100px;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: inherit;
+            resize: none;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        textarea:focus { border-color: var(--primary); }
+
+        .row { display: flex; gap: 15px; margin-bottom: 15px; }
+        .row > div { flex: 1; }
+
+        input[type="date"], input[type="time"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: inherit;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        .btn-primary {
+            width: 100%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
+
+        /* Logs Section */
+        .log-item {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            border-left: 5px solid #cbd5e1;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+            position: relative;
+        }
+
+        .status-badge {
+            float: right;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .pending { background: #fef3c7; color: #92400e; border-left-color: #f59e0b !important; }
+        .approved { background: #dcfce7; color: #166534; border-left-color: #22c55e !important; }
+        .rejected { background: #fee2e2; color: #991b1b; border-left-color: #ef4444 !important; }
+
+        .reject-msg {
+            margin-top: 8px;
+            padding: 8px;
+            background: #fff5f5;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #b91c1c;
+            border-left: 2px solid #feb2b2;
+        }
+
+        .time-info { font-size: 13px; color: #64748b; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card">
+        <h3>Apply for Leave</h3>
+        <div class="form-group">
+            <label>Reason for Leave</label>
+            <textarea id="reason" placeholder="Please type the reason for your gate pass..."></textarea>
+        </div>
+
+        <div class="row">
+            <div>
+                <label>From Date</label>
+                <input type="date" id="fromDate" onfocus="this.min=new Date().toISOString().split('T')[0]">
+            </div>
+            <div>
+                <label>To Date</label>
+                <input type="date" id="toDate" onfocus="this.min=new Date().toISOString().split('T')[0]">
+            </div>
+        </div>
+
+        <div class="row">
+            <div>
+                <label>Departure Time</label>
+                <input type="time" id="depTime">
+            </div>
+            <div>
+                <label>Arrival Time</label>
+                <input type="time" id="arrTime">
+            </div>
+        </div>
+
+        <button onclick="submitLeave()" class="btn-primary">Submit Request</button>
+    </div>
+
+    <h4>Recent Leave Applications</h4>
+    <div id="leaveLogs">
+    </div>
+</div>
+
+<script>
+    // Initialize application
+    window.onload = () => {
+        loadLogs();
+    };
+
+    async function submitLeave() {
+        const userData = localStorage.getItem('currentUser');
+        if (!userData) {
+            Swal.fire("Error", "User session not found. Please Login again.", "error");
+            return;
+        }
+
+        const user = JSON.parse(userData);
+        const reason = document.getElementById('reason').value;
+        const fromDate = document.getElementById('fromDate').value;
+        const toDate = document.getElementById('toDate').value;
+        const depTime = document.getElementById('depTime').value;
+        const arrTime = document.getElementById('arrTime').value;
+
+        // Validation
+        if (!reason || !fromDate || !toDate || !depTime || !arrTime) {
+            Swal.fire("Warning", "Please fill all fields", "warning");
+            return;
+        }
+
+        const body = {
+            registrationNumber: user.registrationNumber,
+            reason: reason,
+            fromDate: fromDate,
+            toDate: toDate,
+            departureTime: depTime,
+            arrivalTime: arrTime
+        };
+
+        try {
+            const res = await fetch('http://localhost:8080/api/leaves/apply', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(body)
+            });
+
+            if(res.ok) {
+                Swal.fire({
+                    title: "Success!",
+                    text: "Leave application sent to Admin.",
+                    icon: "success",
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                // Clear fields
+                document.getElementById('reason').value = "";
+                loadLogs();
+            } else {
+                const errorText = await res.text();
+                Swal.fire("Error", errorText, "error");
+            }
+        } catch (error) {
+            Swal.fire("Error", "Server is not responding", "error");
+        }
+    }
+
+    async function loadLogs() {
+        const user = JSON.parse(localStorage.getItem('currentUser'));
+        if (!user) return;
+
+        try {
+            const res = await fetch(`http://localhost:8080/api/leaves/student/${user.registrationNumber}`);
+            const data = await res.json();
+            const container = document.getElementById('leaveLogs');
+
+            if (data.length === 0) {
+                container.innerHTML = `<p style="text-align:center; color:#94a3b8;">No records found.</p>`;
+                return;
+            }
+
+            container.innerHTML = data.reverse().map(l => `
+                <div class="log-item">
+                    <span class="status-badge ${l.status.toLowerCase()}">${l.status}</span>
+                    <strong>📅 ${l.fromDate} to ${l.toDate}</strong>
+                    <div class="time-info">⏰ Departure: ${formatTime(l.departureTime)} | Arrival: ${formatTime(l.arrivalTime)}</div>
+                    <p style="margin: 10px 0 0; font-size: 13px;"><strong>Reason:</strong> ${l.reason}</p>
+
+                    ${l.status === 'REJECTED' ? `
+                        <div class="reject-msg">
+                            <strong>Admin Note:</strong> ${l.rejectReason || 'No specific reason provided'}
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        } catch (error) {
+            console.error("Error loading logs:", error);
+        }
+    }
+
+    // Helper function to format 24h to 12h time
+    function formatTime(timeString) {
+        if (!timeString) return '';
+        const [hour, minute] = timeString.split(':');
+        const h = parseInt(hour);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const formattedHour = h % 12 || 12;
+        return `${formattedHour}:${minute} ${ampm}`;
+    }
+</script>
+
+</body>
+</html>
