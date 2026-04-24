@@ -35,29 +35,23 @@ public class RoomController {
         return ResponseEntity.ok(roomRepository.save(room));
     }
 
-    // UPDATED: Dynamic Update Logic
     @PutMapping("/update")
     public ResponseEntity<?> updateRoom(@RequestBody Room details) {
         return roomRepository.findByRoomNumber(details.getRoomNumber()).map(room -> {
             room.setCapacity(details.getCapacity());
             room.setType(details.getType());
             room.setFloor(details.getFloor());
-
-            // Note: assignedStudents string logic should ideally be updated if capacity changes
-            // For now, we keep existing assignments intact.
             roomRepository.save(room);
             return ResponseEntity.ok("Room Updated Successfully");
         }).orElse(ResponseEntity.status(404).body("Error: Room Number not found!"));
     }
 
-    // UPDATED: Protected Delete Logic
     @DeleteMapping("/delete/{roomNumber}")
     public ResponseEntity<?> deleteRoom(@PathVariable String roomNumber) {
         Optional<Room> roomOpt = roomRepository.findByRoomNumber(roomNumber);
 
         if(roomOpt.isPresent()) {
             Room room = roomOpt.get();
-            // Check if any bed is NOT empty
             String[] occupants = room.getAssignedStudents().split(",", -1);
             boolean hasStudents = Arrays.stream(occupants).anyMatch(s -> s != null && !s.trim().isEmpty());
 
