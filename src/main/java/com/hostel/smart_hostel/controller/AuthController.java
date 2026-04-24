@@ -5,9 +5,12 @@ import com.hostel.smart_hostel.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -17,38 +20,65 @@ public class AuthController {
     @Autowired
     private UserRepository userRepository;
 
-    /**
-     * SIGNUP: Saves new user data.
-     * Handles both Students and Admins based on the role and ID provided.
-     */
+    @Autowired
+    private JavaMailSender mailSender;
+
+    // Temporary storage for OTPs (Email -> OTP)
+    private Map<String, String> otpCache = new ConcurrentHashMap<>();
+
     @PostMapping("/signup")
     public ResponseEntity<?> signUp(@RequestBody User user) {
-        // Validation: Check if username already exists to prevent duplicates
         if (userRepository.findByUsername(user.getUsername()).isPresent()) {
             return ResponseEntity.badRequest().body("Username already taken!");
         }
-        // Hibernate saves the user data to MySQL
         return ResponseEntity.ok(userRepository.save(user));
     }
 
-    /**
-     * LOGIN: Authenticates via ID Number (STxxxx or ADxxxx) and Password.
-     * It checks both ID columns in the database.
-     */
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody User loginReq) {
-        // In the frontend, we pass the ST/AD ID into the "username" field of the loginRequest
         String providedId = loginReq.getUsername();
-
-        // Use the custom repository method to search both Registration and Identification columns
         Optional<User> user = userRepository.findByRegistrationNumberOrIdentificationNumber(providedId, providedId);
-
         if (user.isPresent() && user.get().getPassword().equals(loginReq.getPassword())) {
-            // Authentication successful: Return the full user object (including role)
             return ResponseEntity.ok(user.get());
         }
-
-        // Authentication failed
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid ID or Password");
+    }
+
+    @PostMapping("/send-otp")
+    public ResponseEntity<?> sendOtp(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        Optional<User> user = userRepository.findByEmail(email);
+
+        if (user.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Cannot send verification code. Email ID is not registered!");
+        }
+
+        // Generate 5 digit code
+        String otp = String.valueOf(10000 + new Random().nextInt(90000));
+        otpCache.put(email, otp);
+
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(email);
+            message.setSubject("Your Hostel Verification Code");
+            message.setText("Your 5-digit verification code is: " + otp);
+            mailSender.send(message);
+            return ResponseEntity.ok("OTP Sent Successfully");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error sending email");
+        }
+    }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<?> verifyOtp(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        String code = request.get("code");
+
+        if (otpCache.containsKey(email) && otpCache.get(email).equals(code)) {
+            otpCache.remove(email);
+            Optional<User> user = userRepository.findByEmail(email);
+            return ResponseEntity.ok(user.get()); // Log user in
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid Verification Code");
     }
 }
