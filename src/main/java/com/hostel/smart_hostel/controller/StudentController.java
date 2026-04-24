@@ -19,7 +19,19 @@ public class StudentController {
     @Autowired
     private RoomRequestRepository roomRequestRepository;
 
-    // --- 1. STUDENT PROFILE SAVING (STRICTLY KEPT) ---
+    @Autowired
+    private RoomRepository roomRepository;
+
+    // --- NEW: GET STUDENT BY REGISTRATION NUMBER ---
+    // This is required for your PDF to fetch Name and Room No from the DB
+    @GetMapping("/{regNo}")
+    public ResponseEntity<Student> getStudent(@PathVariable String regNo) {
+        return studentRepository.findByRegistrationNumber(regNo)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    // --- 1. STUDENT PROFILE SAVING ---
     @PostMapping("/save")
     public ResponseEntity<?> saveDetails(@RequestBody Student student) {
         return studentRepository.findByRegistrationNumber(student.getRegistrationNumber())
@@ -30,17 +42,18 @@ public class StudentController {
                 .orElseGet(() -> ResponseEntity.ok(studentRepository.save(student)));
     }
 
-    // --- 2. GET ALL STUDENTS (STRICTLY KEPT) ---
+    // --- 2. GET ALL STUDENTS ---
     @GetMapping("/all")
     public List<Student> getAll() {
         return studentRepository.findAll();
     }
 
-    // --- 3. ADMIN ROOM ASSIGNMENT LOGIC (STRICTLY KEPT) ---
+    // --- 3. ADMIN ROOM ASSIGNMENT LOGIC ---
     @GetMapping("/unassigned")
     public List<Student> getUnassigned() {
         return studentRepository.findUnassignedStudents();
     }
+
     @PutMapping("/assignRoom")
     public ResponseEntity<?> assignRoom(@RequestBody Map<String, String> payload) {
         return studentRepository.findByRegistrationNumber(payload.get("registrationNumber")).map(s -> {
@@ -50,41 +63,63 @@ public class StudentController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    // --- 4. STUDENT: REQUEST ROOM CHANGE (STRICTLY KEPT/UPDATED) ---
+    // --- 4. STUDENT: REQUEST ROOM CHANGE (UPDATED WITH PENDING CHECK) ---
     @PostMapping("/requestChange")
     public ResponseEntity<?> requestChange(@RequestBody RoomRequest req) {
-        req.setStatus("PENDING"); // Default status for new requests
+        // Check if a PENDING request already exists for this student
+        List<RoomRequest> pending = roomRequestRepository
+                .findByRegistrationNumberAndStatus(req.getRegistrationNumber(), "PENDING");
+
+        if (!pending.isEmpty()) {
+            return ResponseEntity.badRequest()
+                    .body("You already have a pending request. Please wait for Admin response.");
+        }
+
+        req.setStatus("PENDING");
         return ResponseEntity.ok(roomRequestRepository.save(req));
     }
 
-    // --- 5. ADMIN: VIEW ALL REQUESTS (STRICTLY KEPT) ---
+    // --- 5. ADMIN: VIEW ALL REQUESTS ---
     @GetMapping("/requests/all")
     public List<RoomRequest> getAllRequests() {
         return roomRequestRepository.findAll();
     }
 
-
-    // --- 6. ADMIN: PROCESS ACCEPT/REJECT (NEW LOGIC ADDED - NO REMOVALS) ---
+    // --- 6. ADMIN: PROCESS REQUEST (AUTO-VACATE LOGIC) ---
     @PutMapping("/requests/process")
-    public ResponseEntity<?> processRequest(@RequestBody Map<String, String> payload) {
-        Long id = Long.parseLong(payload.get("id"));
-        String action = payload.get("action"); // Expecting "ACCEPT" or "REJECT"
+    public ResponseEntity<?> processRequest(@RequestBody Map<String, Object> payload) {
+        Long id = Long.valueOf(payload.get("id").toString());
+        String action = payload.get("action").toString(); // "ACCEPT" or "REJECT"
 
         return roomRequestRepository.findById(id).map(req -> {
+            req.setStatus(action + "ED");
+
             if ("ACCEPT".equals(action)) {
-                // When accepted, clear current room assignment so admin can re-assign manually
-                studentRepository.findByRegistrationNumber(req.getRegistrationNumber()).ifPresent(s -> {
-                    s.setAssignedRoom(""); // Clear old room
-                    s.setAssignedBed("");  // Clear old bed
-                    studentRepository.save(s);
+                // AUTO-VACATE LOGIC: Clears Room record and Student record automatically
+                studentRepository.findByRegistrationNumber(req.getRegistrationNumber()).ifPresent(student -> {
+                    String oldRoomNo = student.getAssignedRoom();
+
+                    if (oldRoomNo != null && !oldRoomNo.trim().isEmpty()) {
+                        roomRepository.findByRoomNumber(oldRoomNo).ifPresent(room -> {
+                            String[] occupants = room.getAssignedStudents().split(",", -1);
+                            for (int i = 0; i < occupants.length; i++) {
+                                if (occupants[i].trim().equals(student.getRegistrationNumber().trim())) {
+                                    occupants[i] = " ";
+                                }
+                            }
+                            room.setAssignedStudents(String.join(",", occupants));
+                            roomRepository.save(room);
+                        });
+                    }
+                    // Reset student assignment so they appear as unassigned
+                    student.setAssignedRoom("");
+                    student.setAssignedBed("");
+                    studentRepository.save(student);
                 });
-                req.setStatus("ACCEPTED");
-            } else if ("REJECT".equals(action)) {
-                req.setStatus("REJECTED");
             }
 
             roomRequestRepository.save(req);
-            return ResponseEntity.ok("Request Processed Successfully as " + action);
+            return ResponseEntity.ok("Request " + action + "ED successfully.");
         }).orElse(ResponseEntity.notFound().build());
     }
 }
