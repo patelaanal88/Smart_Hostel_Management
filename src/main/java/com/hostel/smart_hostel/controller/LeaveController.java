@@ -4,6 +4,8 @@ import com.hostel.smart_hostel.model.*;
 import com.hostel.smart_hostel.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.List;
@@ -16,10 +18,11 @@ public class LeaveController {
 
     @Autowired private LeaveRepository leaveRepository;
     @Autowired private StudentRepository studentRepository;
+    @Autowired private UserRepository userRepository;
+    @Autowired private JavaMailSender mailSender;
 
     @PostMapping("/apply")
     public ResponseEntity<?> applyLeave(@RequestBody LeaveApplication leave) {
-        // Fetch student from DB to get "My Detail" info
         Optional<Student> studentOpt = studentRepository.findByRegistrationNumber(leave.getRegistrationNumber());
 
         if (studentOpt.isPresent()) {
@@ -27,7 +30,6 @@ public class LeaveController {
             String regNo = leave.getRegistrationNumber();
             String today = LocalDate.now().toString();
 
-            // Overlap/Spam checks
             List<LeaveApplication> activeLeaves = leaveRepository.findActiveApprovedLeaves(regNo, today);
             if (!activeLeaves.isEmpty()) {
                 return ResponseEntity.badRequest().body("Blocked: Active Approved Leave exists.");
@@ -37,11 +39,10 @@ public class LeaveController {
                 return ResponseEntity.badRequest().body("Blocked: Pending application already exists.");
             }
 
-            // Sync from "Detail" Section
             leave.setStudentName(student.getFullName());
             leave.setRoomNumber(student.getAssignedRoom());
             leave.setParentNumber(student.getParentPhone());
-            leave.setFatherName(student.getFatherName()); // <-- FETCHED FROM STUDENT DETAILS
+            leave.setFatherName(student.getFatherName());
             leave.setStatus("PENDING");
 
             return ResponseEntity.ok(leaveRepository.save(leave));
@@ -56,7 +57,6 @@ public class LeaveController {
 
     @GetMapping("/admin/archived")
     public List<LeaveApplication> getArchived() {
-        // Returns both APPROVED and REJECTED leaves
         return leaveRepository.findAll().stream()
                 .filter(l -> !l.getStatus().equals("PENDING"))
                 .collect(java.util.stream.Collectors.toList());
@@ -67,8 +67,35 @@ public class LeaveController {
         return leaveRepository.findById(details.getId()).map(l -> {
             l.setStatus(details.getStatus());
             l.setRejectReason(details.getRejectReason());
-            return ResponseEntity.ok(leaveRepository.save(l));
+            LeaveApplication updatedLeave = leaveRepository.save(l);
+
+            // Send Notification
+            sendLeaveStatusEmail(updatedLeave);
+
+            return ResponseEntity.ok(updatedLeave);
         }).orElse(ResponseEntity.notFound().build());
+    }
+
+    private void sendLeaveStatusEmail(LeaveApplication leave) {
+        userRepository.findByRegistrationNumberOrIdentificationNumber(leave.getRegistrationNumber(), leave.getRegistrationNumber())
+                .ifPresent(user -> {
+                    try {
+                        SimpleMailMessage message = new SimpleMailMessage();
+                        message.setTo(user.getEmail());
+                        message.setSubject("Leave Application Update - Smart Hostel");
+                        String statusMsg = leave.getStatus().equalsIgnoreCase("APPROVED") ?
+                                "Your leave has been APPROVED." :
+                                "Your leave has been REJECTED. Reason: " + leave.getRejectReason();
+
+                        message.setText("Dear " + leave.getStudentName() + ",\n\n" +
+                                statusMsg + "\n" +
+                                "Leave Dates: " + leave.getFromDate() + " to " + leave.getToDate() + "\n\n" +
+                                "Regards,\nHostel Administration");
+                        mailSender.send(message);
+                    } catch (Exception e) {
+                        System.err.println("Mail Error: " + e.getMessage());
+                    }
+                });
     }
 
     @GetMapping("/student/{regNo}")
