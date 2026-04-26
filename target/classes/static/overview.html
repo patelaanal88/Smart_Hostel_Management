@@ -5,6 +5,33 @@
     <title>Admin Overview | HostelFlow</title>
     <link rel="stylesheet" href="overview.css">
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <style>
+        /* Pagination UI Styles */
+        .pagination-bar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 30px 0;
+            gap: 10px;
+        }
+        .page-btn {
+            padding: 8px 16px;
+            border: 1px solid #3b82f6;
+            background: white;
+            color: #3b82f6;
+            cursor: pointer;
+            border-radius: 4px;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+        .page-btn.active {
+            background: #3b82f6;
+            color: white;
+        }
+        .page-btn:hover:not(.active) {
+            background: #f0f7ff;
+        }
+    </style>
 </head>
 <body>
 <div class="admin-container">
@@ -27,36 +54,52 @@
         <h2><i class='bx bx-list-ul'></i> Student Admission Records</h2>
     </header>
 
-    <div class="records-grid" id="records-container">
-    </div>
+    <div class="records-grid" id="records-container"></div>
+
+    <div class="pagination-bar" id="pagination-controls"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-    let allStudents = [];
+    let allStudents = [];      // To store raw data
+    let filteredStudents = []; // To store searched/sorted data
+    let currentPage = 1;
+    const recordsPerPage = 8;
 
     async function fetchAllStudents() {
         try {
             const res = await fetch('http://localhost:8080/api/students/all');
-            allStudents = await res.json();
+            const data = await res.json();
 
-            // Update Total Count
+            // REQUIREMENT 1: SORT ALPHABETICALLY BY NAME
+            allStudents = data.sort((a, b) => a.fullName.localeCompare(b.fullName));
+            filteredStudents = [...allStudents];
+
             document.getElementById('total-count').innerText = allStudents.length;
 
-            renderTable(allStudents);
+            renderTable();
         } catch (err) {
             console.error("Failed to load records", err);
         }
     }
 
-    function renderTable(data) {
+    // REQUIREMENT 2: RENDER TABLE WITH PAGING
+    function renderTable() {
         const container = document.getElementById('records-container');
-        if (data.length === 0) {
+
+        // Calculate slicing indexes
+        const startIndex = (currentPage - 1) * recordsPerPage;
+        const endIndex = startIndex + recordsPerPage;
+        const pageData = filteredStudents.slice(startIndex, endIndex);
+
+        if (pageData.length === 0) {
             container.innerHTML = `<p class="no-data">No matching student records found.</p>`;
+            document.getElementById('pagination-controls').innerHTML = '';
             return;
         }
 
-        container.innerHTML = data.map(st => `
+        // Render current 6 records
+        container.innerHTML = pageData.map(st => `
             <div class="student-card">
                 <div class="card-header">
                     <h3>${st.fullName}</h3>
@@ -72,15 +115,39 @@
                 </button>
             </div>
         `).join('');
+
+        renderPaginationControls();
     }
 
-    // Real-time Search Logic
+    // REQUIREMENT 3: AUTOMATIC HORIZONTAL PAGINATION BAR
+    function renderPaginationControls() {
+        const totalPages = Math.ceil(filteredStudents.length / recordsPerPage);
+        const controls = document.getElementById('pagination-controls');
+        controls.innerHTML = '';
+
+        if (totalPages <= 1) return; // Don't show if everything fits on one page
+
+        for (let i = 1; i <= totalPages; i++) {
+            const btn = document.createElement('button');
+            btn.innerText = i;
+            btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+            btn.onclick = () => {
+                currentPage = i;
+                renderTable();
+                window.scrollTo({top: 0, behavior: 'smooth'}); // Scroll up for better UX
+            };
+            controls.appendChild(btn);
+        }
+    }
+
+    // Real-time Search Logic updated for Paging
     function filterStudents() {
         const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-        const filteredData = allStudents.filter(st =>
+        filteredStudents = allStudents.filter(st =>
             st.fullName.toLowerCase().includes(searchTerm)
         );
-        renderTable(filteredData);
+        currentPage = 1; // Reset to page 1 on new search
+        renderTable();
     }
 
     function showDetails(st) {
