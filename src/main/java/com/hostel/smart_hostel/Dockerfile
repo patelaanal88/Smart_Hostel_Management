@@ -1,30 +1,23 @@
-# Stage 1: Build using Maven
-FROM maven:3.9.9-eclipse-temurin-17 AS builder
-
+# Stage 1: Build stage
+FROM maven:3.9.6-eclipse-temurin-17 AS build
 WORKDIR /app
 
-# Copy pom.xml first (for caching)
+# Copy the pom.xml and source code
 COPY pom.xml .
-
-# Download dependencies
-RUN mvn dependency:go-offline
-
-# Copy source code
 COPY src ./src
 
-# Build the jar
+# Build the application and skip tests for faster deployment
 RUN mvn clean package -DskipTests
 
-# Stage 2: Run the app
-FROM eclipse-temurin:17-jre
-
+# Stage 2: Run stage
+FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
-# Copy jar from builder
-COPY --from=builder /app/target/*.jar app.jar
+# Use a wildcard (*) to find the generated JAR file and rename it to app.jar
+COPY --from=build /app/target/*.jar app.jar
 
-# Expose port (Render uses PORT env)
+# Expose the port
 EXPOSE 8080
 
-# Run app
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Run the app with memory limits for Render's Free Tier
+ENTRYPOINT ["java", "-Xmx300m", "-jar", "app.jar"]
