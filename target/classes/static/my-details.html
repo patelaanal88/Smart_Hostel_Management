@@ -98,9 +98,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-    // Fetch User ID from localStorage
+    // Fetch User Info from localStorage
     const user = JSON.parse(localStorage.getItem('currentUser'));
-    if(user) {
+
+    if(user && user.registrationNumber) {
         document.getElementById('st-id-display').innerText = user.registrationNumber;
     } else {
         window.location.href = 'login.html';
@@ -109,6 +110,7 @@
     document.getElementById('studentDetailsForm').onsubmit = async (e) => {
         e.preventDefault();
 
+        // Prepare the data object to match your Student.java entity
         const studentData = {
             registrationNumber: user.registrationNumber,
             fullName: document.getElementById('fullName').value,
@@ -132,29 +134,34 @@
                 body: JSON.stringify(studentData)
             });
 
+            const resultText = await response.text();
+
             if (response.ok) {
-                // --- UPDATED LOGIC: SHOW MESSAGE THEN REDIRECT ---
+                // Success Notification
                 Swal.fire({
                     title: 'Success!',
-                    text: 'Profile record created in MySQL Database.',
+                    text: 'Profile record synchronized with MySQL Database.',
                     icon: 'success',
                     confirmButtonColor: '#10b981',
-                    timer: 2000, // Optional: Auto close after 2 seconds
+                    timer: 2000,
                     timerProgressBar: true
-                }).then((result) => {
-                    // This block executes after clicking "OK" OR after the timer ends
+                }).then(() => {
+                    // Redirect to student dashboard after success
                     window.location.href = 'student_dashboard.html';
                 });
 
             } else {
-                const errorMsg = await response.text();
-                throw new Error(errorMsg || 'Failed to save data');
+                // If backend returns an error (like duplicate Aadhar), catch it here
+                throw new Error(resultText || 'Data rejected by server');
             }
         } catch (error) {
             console.error('Error:', error);
+            // Enhanced Error Alert showing the specific reason
             Swal.fire({
                 title: 'Database Error',
-                text: 'Connection to server failed or data rejected.',
+                text: error.message.includes('Failed to fetch')
+                      ? 'Cannot connect to backend. Is Spring Boot running?'
+                      : error.message,
                 icon: 'error',
                 confirmButtonColor: '#ef4444'
             });
