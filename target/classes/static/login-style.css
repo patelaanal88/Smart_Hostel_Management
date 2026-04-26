@@ -1,4 +1,5 @@
-/* Root Variables for Consistency */:root {
+/* Root Variables for Consistency */
+:root {
     --primary-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
     --bg-color: #f8fafc;
     --card-bg: #ffffff;
@@ -17,8 +18,8 @@
 
 body {
     background: var(--bg-color);
-    background-image: radial-gradient(at 0% 0%, hsla(161, 74%, 84%, 1) 0, transparent 50%),
-        radial-gradient(at 50% 0%, hsla(225, 80%, 88%, 1) 0, transparent 50%);
+    background-image: radial-gradient(at 0% 0%, hsla(161,74%,84%,1) 0, transparent 50%), 
+                      radial-gradient(at 50% 0%, hsla(225,80%,88%,1) 0, transparent 50%);
     height: 100vh;
     display: flex;
     align-items: center;
