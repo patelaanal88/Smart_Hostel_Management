@@ -1,10 +1,7 @@
-/**
- * UI FUNCTION: updateLabels
- * Handles the visual toggle between Student and Admin on the Sign-Up page.
- */
+
 function updateLabels(role) {
     const authForm = document.getElementById('authForm');
-    if (authForm) authForm.reset(); // Mandatory clear on toggle to prevent data mixing
+    if (authForm) authForm.reset(); //clear on toggle to prevent data mixing
 
     const idLabel = document.getElementById('id-label');
     const idField = document.getElementById('id-field');
@@ -15,22 +12,19 @@ function updateLabels(role) {
         idField.placeholder = "e.g. AD1234";
         if (loginBtn) {
             loginBtn.innerText = "Register Admin";
-            loginBtn.style.background = "#3b82f6"; // Admin Blue
+            loginBtn.style.background = "#3b82f6"; // Admin
         }
     } else {
         idLabel.innerText = "Registration Number (STxxxx)";
         idField.placeholder = "e.g. ST1234";
         if (loginBtn) {
             loginBtn.innerText = "Register Student";
-            loginBtn.style.background = "#10b981"; // Student Green
+            loginBtn.style.background = "#10b981"; // Student
         }
     }
 }
 
-/**
- * SIGN-UP FUNCTION: handleAuth
- * Validates inputs using strict Regex and sends data to Spring Boot.
- */
+//sign-up
 async function handleAuth(event) {
     event.preventDefault();
 
@@ -102,10 +96,7 @@ async function handleAuth(event) {
     }
 }
 
-/**
- * LOGIN FUNCTION: handleLogin
- * Verifies the Registration/Identification Number and Password against the database.
- */
+
 async function handleLogin(event) {
     event.preventDefault();
 
@@ -155,4 +146,4 @@ async function handleLogin(event) {
         console.error("Login Connection error:", err);
         alert("Error connecting to server. Ensure Spring Boot is running on port 8080.");
     }
-}           
+}
