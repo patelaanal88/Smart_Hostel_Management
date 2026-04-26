@@ -10,59 +10,51 @@ public class Student {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Link this to the User account
     @Column(unique = true, nullable = false)
-    private String registrationNumber; // STxxxx
-    @Column(unique = true, nullable = false)
+    private String registrationNumber;
+
+    @Column(nullable = false)
     private String fullName;
+
     @Column(unique = true, nullable = false)
     private String aadharNumber;
-    @Column(unique = true, nullable = false)
+
+    @Column(nullable = false)
     private String studentPhone;
-    @Column(unique = true, nullable = false)
+
+    @Column(nullable = false)
     private String email;
-    @Column(unique = true, nullable = false)
+
+    @Column(nullable = false)
     private String fatherName;
-    @Column(unique = true, nullable = false)
+
+    @Column(nullable = false)
     private String motherName;
-    @Column(unique = true, nullable = false)
+
+    @Column(nullable = false)
     private String parentPhone;
+
     @Column(nullable = false)
     private String collegeName;
+
     @Column(nullable = false)
     private String branch;
+
     @Column(nullable = false)
     private String city;
-    @Column(unique = true, nullable = false)
-    private String relativeContact; // Emergency contact
 
-    public String getAssignedRoom() {
-        return assignedRoom;
-    }
+    @Column(nullable = false)
+    private String relativeContact;
 
-    public void setAssignedRoom(String assignedRoom) {
-        this.assignedRoom = assignedRoom;
-    }
-
-    public String getAssignedBed() {
-        return assignedBed;
-    }
-
-    public void setAssignedBed(String assignedBed) {
-        this.assignedBed = assignedBed;
-    }
-
-    @Column(length = 500)
+    @Column(length = 1000) // Increased length for long addresses
     private String permanentAddress;
+
     @Column(name = "assigned_room")
     private String assignedRoom;
 
     @Column(name = "assigned_bed")
     private String assignedBed;
 
-
-
-    // Constructors
     public Student() {}
 
     // Getters and Setters
@@ -94,5 +86,8 @@ public class Student {
     public void setRelativeContact(String rc) { this.relativeContact = rc; }
     public String getPermanentAddress() { return permanentAddress; }
     public void setPermanentAddress(String pa) { this.permanentAddress = pa; }
-
+    public String getAssignedRoom() { return assignedRoom; }
+    public void setAssignedRoom(String ar) { this.assignedRoom = ar; }
+    public String getAssignedBed() { return assignedBed; }
+    public void setAssignedBed(String ab) { this.assignedBed = ab; }
 }
