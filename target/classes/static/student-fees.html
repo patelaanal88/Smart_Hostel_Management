@@ -59,17 +59,16 @@
     let feeData = null;
     const user = JSON.parse(localStorage.getItem('currentUser'));
 
+    // Professional Hostel Logo (Change URL to your local logo path if needed)
+    const HOSTEL_LOGO_URL = "https://cdn-icons-png.flaticon.com/512/3061/3061341.png";
+
     async function initializePage() {
         if (!user) return Swal.fire("Error", "User session not found", "error");
 
         try {
-            // Fetch fee structure based on registration number
             const res = await fetch(`http://localhost:8080/api/fees/structure/${user.registrationNumber}`);
-
             if (res.ok) {
                 feeData = await res.json();
-
-                // DYNAMIC ROOM TYPE DETECTION
                 const isAC = feeData.roomType === "AC";
                 const categoryLabel = isAC ? "(AC Room Charges)" : "(Non-AC Room Charges)";
                 const labelColor = isAC ? "#ef4444" : "#6366f1";
@@ -78,7 +77,6 @@
                 document.getElementById('roomCategoryDisplay').style.color = labelColor;
 
                 const total = feeData.rent + feeData.mess + feeData.electricity + feeData.maintenance;
-
                 document.getElementById('feeDetails').innerHTML = `
                     <tr><td>Room Rent</td><td>₹${feeData.rent}</td></tr>
                     <tr><td>Mess Charges</td><td>₹${feeData.mess}</td></tr>
@@ -86,7 +84,6 @@
                     <tr><td>Maintenance</td><td>₹${feeData.maintenance}</td></tr>
                 `;
                 document.getElementById('totalAmount').innerText = "₹" + total;
-
                 checkVerificationStatus();
             } else {
                 const msg = await res.text();
@@ -102,7 +99,6 @@
         try {
             const res = await fetch(`http://localhost:8080/api/fees/student-status/${user.registrationNumber}`);
             const payment = await res.json();
-
             if (payment && payment.status === 'SUCCESSFUL') {
                 document.getElementById('statusBadge').innerHTML = `<div class="status-msg verified">Payment Verified ✓</div>`;
                 document.getElementById('payBtn').style.display = 'none';
@@ -118,10 +114,8 @@
         if (!feeData) return Swal.fire("Error", "Fee data not loaded", "error");
         document.getElementById('paymentArea').style.display = 'block';
         document.getElementById('payBtn').style.display = 'none';
-
         const total = feeData.rent + feeData.mess + feeData.electricity + feeData.maintenance;
         const upiURI = `upi://pay?pa=${feeData.adminUpiId}&pn=HostelAdmin&am=${total}&cu=INR&tn=FeePayment`;
-
         document.getElementById('upiQR').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiURI)}`;
         document.getElementById('displayUpi').innerText = feeData.adminUpiId;
     }
@@ -129,10 +123,8 @@
     async function submitPayment() {
         const utr = document.getElementById('utr').value;
         if(utr.trim().length < 10) return Swal.fire("Error", "Invalid Transaction ID", "error");
-
         const total = feeData.rent + feeData.mess + feeData.electricity + feeData.maintenance;
         const studentName = user.fullName || user.name || "Student";
-
         const paymentData = {
             registrationNumber: user.registrationNumber,
             studentName: studentName,
@@ -141,7 +133,6 @@
             roomType: feeData.roomType,
             status: "PENDING"
         };
-
         try {
             const res = await fetch('http://localhost:8080/api/fees/submit-payment', {
                 method: 'POST',
@@ -157,69 +148,81 @@
     }
 
     async function generatePDF() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
 
-        try {
-            const response = await fetch(`http://localhost:8080/api/students/${user.registrationNumber}`);
-            const dbUser = await response.json();
+    try {
+        const response = await fetch(`http://localhost:8080/api/students/${user.registrationNumber}`);
+        const dbUser = await response.json();
 
-            const sName = dbUser.fullName || "N/A";
-            const regNo = dbUser.registrationNumber || "N/A";
-            const roomNo = dbUser.assignedRoom || "Not Assigned";
-            const roomType = (roomNo.toUpperCase().includes("AC")) ? "AC Room" : "Non-AC Room";
+        const sName = dbUser.fullName || "N/A";
+        const regNo = dbUser.registrationNumber || "N/A";
+        const roomNo = dbUser.assignedRoom || "Not Assigned";
+        const roomType = (roomNo.toUpperCase().includes("AC")) ? "AC Room" : "Non-AC Room";
+        const total = feeData.rent + feeData.mess + feeData.electricity + feeData.maintenance;
 
-            const rent = feeData.rent || 0;
-            const mess = feeData.mess || 0;
-            const electricity = feeData.electricity || 0;
-            const maintenance = feeData.maintenance || 0;
-            const total = rent + mess + electricity + maintenance;
+        const logoImg = new Image();
+        logoImg.src = HOSTEL_LOGO_URL;
+        logoImg.crossOrigin = "Anonymous";
 
+        logoImg.onload = function() {
+            // Header Section
+            doc.addImage(logoImg, 'PNG', 20, 12, 22, 22);
             doc.setFont("helvetica", "bold");
             doc.setFontSize(22);
             doc.setTextColor(99, 102, 241);
-            doc.text("SMART HOSTEL - FEE RECEIPT", 105, 25, { align: 'center' });
-            doc.line(20, 30, 190, 30);
+            doc.text("SMART HOSTEL ERP", 50, 22);
 
+            doc.setFontSize(10);
+            doc.setTextColor(100, 100, 100);
+            doc.text("Official Digital Fee Receipt", 50, 28);
+            doc.line(20, 38, 190, 38);
+
+            // Student Information Section
             doc.setFontSize(12);
             doc.setTextColor(0, 0, 0);
-            doc.text("STUDENT INFORMATION", 20, 45);
-
+            doc.text("STUDENT INFORMATION", 20, 50);
             doc.setFont("helvetica", "normal");
-            doc.text(`Student Name: ${sName}`, 20, 55);
-            doc.text(`Registration No: ${regNo}`, 20, 65);
-            doc.text(`Room Number: ${roomNo}`, 20, 75);
-            doc.text(`Room Category: ${roomType}`, 20, 85);
+            doc.text(`Student Name: ${sName}`, 20, 60);
+            doc.text(`Registration No: ${regNo}`, 20, 70);
+            doc.text(`Room Number: ${roomNo}`, 20, 80);
+            doc.text(`Room Category: ${roomType}`, 20, 90);
 
+            // Fee Breakdown Table [cite: 228, 229]
             doc.setFont("helvetica", "bold");
-            doc.text("FEE BREAKDOWN", 20, 105);
-            doc.line(20, 107, 190, 107);
+            doc.text("FEE BREAKDOWN", 20, 110);
+            doc.line(20, 112, 190, 112);
 
             doc.setFont("helvetica", "normal");
-            const yStart = 117;
-            doc.text("Room Rent", 25, yStart);      doc.text(`INR ${rent}`, 150, yStart);
-            doc.text("Mess Charges", 25, yStart+10);  doc.text(`INR ${mess}`, 150, yStart+10);
-            doc.text("Electricity", 25, yStart+20);   doc.text(`INR ${electricity}`, 150, yStart+20);
-            doc.text("Maintenance", 25, yStart+30);   doc.text(`INR ${maintenance}`, 150, yStart+30);
+            const yStart = 122;
+            doc.text("Room Rent", 25, yStart);      doc.text(`INR ${feeData.rent}`, 150, yStart);
+            doc.text("Mess Charges", 25, yStart+10);  doc.text(`INR ${feeData.mess}`, 150, yStart+10);
+            doc.text("Electricity", 25, yStart+20);   doc.text(`INR ${feeData.electricity}`, 150, yStart+20);
+            doc.text("Maintenance", 25, yStart+30);   doc.text(`INR ${feeData.maintenance}`, 150, yStart+30);
 
             doc.line(20, yStart+35, 190, yStart+35);
             doc.setFont("helvetica", "bold");
             doc.text("TOTAL AMOUNT PAID:", 25, yStart+45);
             doc.text(`INR ${total}`, 150, yStart+45);
 
+            // CLEANED STATUS MESSAGE (Meaningless text removed)
             doc.setFontSize(14);
-            doc.setTextColor(16, 101, 52);
-            doc.text("STATUS: PAYMENT VERIFIED BY ADMIN", 105, 185, { align: 'center' });
+            doc.setTextColor(16, 101, 52); // Professional Green
+            doc.text("STATUS: PAYMENT VERIFIED", 105, 190, { align: 'center' });
 
-            doc.setFontSize(10);
-            doc.setTextColor(100, 100, 100);
-            doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 210);
+            // Footer Information [cite: 172, 175]
+            doc.setFontSize(9);
+            doc.setTextColor(150, 150, 150);
+            doc.text("This is a computer-generated document and does not require a physical signature.", 105, 205, { align: 'center' });
+            doc.text(`Generated on: ${new Date().toLocaleString()}`, 105, 212, { align: 'center' });
 
             doc.save(`${regNo}_Fee_Receipt.pdf`);
-        } catch (error) {
-            Swal.fire("Error", "Could not generate receipt", "error");
-        }
+        };
+    } catch (error) {
+        console.error(error);
+        Swal.fire("Error", "Could not generate receipt", "error");
     }
+}
     window.onload = initializePage;
 </script>
 </body>
