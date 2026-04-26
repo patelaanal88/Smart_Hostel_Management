@@ -5,8 +5,10 @@
     <title>Admin Dashboard | Smart Hostel</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
     <style>
-        :root { --primary: #6366f1; --success: #10b981; --danger: #ef4444; --warning: #f59e0b; --bg: #f8fafc; }
+        :root { --primary: #6366f1; --success: #10b981; --danger: #ef4444; --warning: #f59e0b; --bg: #f8fafc; --info: #0ea5e9; }
         body { font-family: 'Poppins', sans-serif; background: var(--bg); padding: 20px; color: #1e293b; }
         .container { max-width: 1300px; margin: auto; }
         .card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 25px; }
@@ -45,6 +47,7 @@
             <button onclick="addRoom()" class="btn" style="background:var(--primary)">Add Room</button>
             <button onclick="updateRoomForm()" class="btn" style="background:var(--warning)">Update Details</button>
             <button onclick="deleteRoomForm()" class="btn" style="background:var(--danger)">Delete Room</button>
+            <button onclick="generatePDF()" class="btn" style="background:var(--info)">Download Room Info</button>
         </div>
 
         <div style="background: #f1f5f9; padding: 10px; border-radius: 8px; display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
@@ -122,71 +125,100 @@
         });
     }
 
+    // UPDATED PDF LOGIC WITH MOBILE NUMBER
+    async function generatePDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('landscape'); // Changed to landscape to fit extra column comfortably
+
+        const rooms = await (await fetch(`${API_R}/all`)).json();
+        const students = await (await fetch(`${API_S}/all`)).json();
+
+        rooms.sort((a, b) => (a.floor - b.floor) || a.roomNumber.localeCompare(b.roomNumber));
+
+        doc.setFontSize(22);
+        doc.setTextColor(99, 102, 241);
+        doc.text("Smart Hostel - Comprehensive Allocation Report", 14, 20);
+
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
+
+        let currentY = 35;
+        const floors = [...new Set(rooms.map(r => r.floor))];
+
+        floors.forEach(floorNum => {
+            doc.setFontSize(16);
+            doc.setTextColor(0);
+            doc.text(`FLOOR: ${floorNum}`, 14, currentY);
+            currentY += 5;
+
+            const floorRooms = rooms.filter(r => r.floor === floorNum);
+            const tableData = [];
+
+            floorRooms.forEach(room => {
+                const occupants = room.assignedStudents.split(",");
+                occupants.forEach((regNum, index) => {
+                    const sid = regNum.trim();
+                    const student = students.find(s => s.registrationNumber === sid);
+                    const bedLabel = String.fromCharCode(65 + index);
+
+                    tableData.push([
+                        room.roomNumber,
+                        room.type,
+                        `${room.capacity} Sharing`,
+                        bedLabel,
+                        sid ? (student ? student.fullName : sid) : "VACANT",
+                        sid || "-",
+                        sid ? (student ? student.studentPhone : "N/A") : "-" // ADDED MOBILE COLUMN
+                    ]);
+                });
+            });
+
+            doc.autoTable({
+                startY: currentY,
+                head: [['Room', 'Type', 'Sharing', 'Bed', 'Student Name', 'Reg. Number', 'Mobile Number']],
+                body: tableData,
+                theme: 'grid',
+                headStyles: { fillColor: [99, 102, 241], fontSize: 10 },
+                styles: { fontSize: 9 },
+                margin: { top: 10 },
+                didDrawPage: (data) => { currentY = data.cursor.y + 10; }
+            });
+
+            currentY = doc.lastAutoTable.finalY + 15;
+            if (currentY > 180) { // Adjusted for landscape height
+                doc.addPage();
+                currentY = 20;
+            }
+        });
+
+        doc.save(`Hostel_Allocation_Full_Report_${new Date().toLocaleDateString()}.pdf`);
+    }
+
     async function loadRequests() {
-    const reqs = await (await fetch(`${API_S}/requests/all`)).json();
-    const feed = document.getElementById("requestFeed");
-    feed.innerHTML = "";
-
-    reqs.filter(r => r.status === 'PENDING').forEach(r => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-            <td>${r.fullName}</td>
-            <td>${r.registrationNumber}</td>
-            <td>${r.currentRoom}</td>
-            <td>${r.preference1}</td>
-            <td>${r.preference2}</td>
-            <td>
-                <button class="btn" style="background:var(--success); padding:5px 10px; font-size:11px;"
-                    onclick="procReq(${r.id}, 'ACCEPT', '${r.registrationNumber}')">Accept</button>
-                <button class="btn" style="background:var(--danger); padding:5px 10px; font-size:11px;"
-                    onclick="procReq(${r.id}, 'REJECT', '${r.registrationNumber}')">Reject</button>
-            </td>`;
-        feed.appendChild(tr);
-    });
-}
-
-      // Replace the procReq function in your room.html script section
-async function procReq(id, act, regNum) {
-    if (act === 'ACCEPT') {
-        const { isConfirmed } = await Swal.fire({
-            title: 'Confirm Approval',
-            text: `Do you want to accept this request and automatically vacate the bed for ID: ${regNum}?`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, Vacate and Accept',
-            cancelButtonText: 'Cancel',
-            confirmButtonColor: '#10b981'
+        const reqs = await (await fetch(`${API_S}/requests/all`)).json();
+        const feed = document.getElementById("requestFeed");
+        feed.innerHTML = "";
+        reqs.filter(r => r.status === 'PENDING').forEach(r => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `<td>${r.fullName}</td><td>${r.registrationNumber}</td><td>${r.currentRoom}</td><td>${r.preference1}</td><td>${r.preference2}</td><td><button class="btn" style="background:var(--success); padding:5px 10px; font-size:11px;" onclick="procReq(${r.id}, 'ACCEPT', '${r.registrationNumber}')">Accept</button><button class="btn" style="background:var(--danger); padding:5px 10px; font-size:11px;" onclick="procReq(${r.id}, 'REJECT', '${r.registrationNumber}')">Reject</button></td>`;
+            feed.appendChild(tr);
         });
-
-        if (!isConfirmed) return; // Exit if admin clicks cancel
     }
 
-    // Call the API to process the request
-    const response = await fetch(`${API_S}/requests/process`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: id, action: act })
-    });
-
-    if (response.ok) {
-        Swal.fire({
-            title: act === 'ACCEPT' ? 'Accepted!' : 'Rejected',
-            text: act === 'ACCEPT' ? 'The bed has been automatically vacated.' : 'Request has been declined.',
-            icon: 'success',
-            timer: 2000,
-            showConfirmButton: false
-        });
-
-        // Refresh both the room grid (to see the Green bed) and the request feed
-        loadRooms();
-        loadRequests();
-    } else {
-        Swal.fire("Error", "Could not process request", "error");
+    async function procReq(id, act, regNum) {
+        if (act === 'ACCEPT') {
+            const { isConfirmed } = await Swal.fire({ title: 'Confirm Approval', text: `Do you want to accept this request and automatically vacate the bed for ID: ${regNum}?`, icon: 'question', showCancelButton: true, confirmButtonText: 'Yes, Vacate and Accept', cancelButtonText: 'Cancel', confirmButtonColor: '#10b981' });
+            if (!isConfirmed) return;
+        }
+        const response = await fetch(`${API_S}/requests/process`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id, action: act }) });
+        if (response.ok) {
+            Swal.fire({ title: act === 'ACCEPT' ? 'Accepted!' : 'Rejected', text: act === 'ACCEPT' ? 'The bed has been automatically vacated.' : 'Request has been declined.', icon: 'success', timer: 2000, showConfirmButton: false });
+            loadRooms(); loadRequests();
+        } else {
+            Swal.fire("Error", "Could not process request", "error");
+        }
     }
-}
-
-
-
 
     function openRoomModal(r) {
         curRoom = r; document.getElementById("mTitle").innerText = `Room ${r.roomNumber} (${r.type})`;
