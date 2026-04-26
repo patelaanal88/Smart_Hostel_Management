@@ -6,8 +6,6 @@ import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByUsername(String username);
-
-    // This allows the login to check both columns with one value
-    Optional<User> findByRegistrationNumberOrIdentificationNumber(String regNo, String idNo);
+    Optional<User> findByEmail(String email); // New method
+    Optional<User> findByRegistrationNumberOrIdentificationNumber(String reg, String id);
 }
-// THIS IS UserRepository.java it is interface
