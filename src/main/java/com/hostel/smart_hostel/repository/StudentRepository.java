@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface StudentRepository extends JpaRepository<Student, Long> {
+
+    // Used by ComplaintController to sync names
     Optional<Student> findByRegistrationNumber(String registrationNumber);
 
     // Only fetch students where assignedRoom is null or empty
